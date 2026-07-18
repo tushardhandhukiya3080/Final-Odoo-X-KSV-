@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Car, Clock, Users, IndianRupee, Route as RouteIcon,
+  ArrowRight, CheckCircle2, Repeat, Sparkles,
+} from "lucide-react";
 import { api } from "@/lib/client";
 import DynamicMap from "@/components/map/DynamicMap";
 import LocationInput, { type PlaceValue, type SavedPlace } from "@/components/map/LocationInput";
@@ -91,12 +95,17 @@ export default function OfferRidePage() {
 
   if (vehicles.length === 0) {
     return (
-      <div className="surface empty">
-        <span className="big-ico">🚙</span>
-        You need a registered vehicle before offering a ride.
-        <div style={{ marginTop: 14 }}>
-          <Link href="/vehicles" className="btn-primary">
-            Register a vehicle
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-display text-3xl font-bold uppercase text-slate-900">Offer a Ride</h1>
+          <p className="text-sm font-semibold text-slate-500">Publish your route and share empty seats with colleagues.</p>
+        </div>
+        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/50 py-14 text-center shadow-inner">
+          <Car className="mb-3 h-10 w-10 text-slate-300" />
+          <div className="font-display text-lg font-bold text-slate-700">Register a vehicle first</div>
+          <div className="mt-1 max-w-sm text-sm font-medium text-slate-400">You need a registered vehicle before you can offer a ride.</div>
+          <Link href="/vehicles" className="btn-primary mt-4 inline-flex w-auto">
+            Register a vehicle <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
@@ -104,96 +113,155 @@ export default function OfferRidePage() {
   }
 
   return (
-    <>
-      <div className="page-head">
-        <h1>Offer a Ride</h1>
-        <p>Publish your route and share empty seats with colleagues.</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-3xl font-bold uppercase text-slate-900">Offer a Ride</h1>
+        <p className="text-sm font-semibold text-slate-500">Publish your route and share empty seats with colleagues.</p>
       </div>
 
       {error && <div className="error">{error}</div>}
 
       {step === "form" ? (
-        <div className="surface">
-          <form onSubmit={preview}>
-            <div className="field">
-              <label>Vehicle</label>
-              <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.model} · {v.registration_number} ({v.seating_capacity} seats)
-                  </option>
-                ))}
-              </select>
-            </div>
-            <LocationInput label="Pickup / origin" value={origin} onChange={setOrigin} saved={saved} />
-            <LocationInput label="Destination" value={dest} onChange={setDest} saved={saved} />
-            <div className="form-grid two">
-              <div className="field">
-                <label>Departure</label>
-                <input type="datetime-local" value={departAt} onChange={(e) => setDepartAt(e.target.value)} required />
-              </div>
-              <div className="field">
-                <label>Seats offered</label>
-                <input type="number" min={1} max={20} value={seats} onChange={(e) => setSeats(+e.target.value)} />
-              </div>
-              <div className="field">
-                <label>Fare per seat (₹)</label>
-                <input type="number" min={0} value={fare} onChange={(e) => setFare(+e.target.value)} />
-              </div>
-              <div className="field" style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, margin: 0 }}>
-                  <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
-                  Recurring (weekdays)
-                </label>
+        <form onSubmit={preview} className="space-y-6">
+          {/* Vehicle */}
+          <div className="space-y-3">
+            <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Vehicle</div>
+            <div className="bento">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {vehicles.map((v) => {
+                  const selected = vehicleId === v.id;
+                  return (
+                    <button
+                      type="button"
+                      key={v.id}
+                      onClick={() => setVehicleId(v.id)}
+                      className={`rounded-xl p-3 text-left ring-1 ring-black/10 transition ${
+                        selected
+                          ? "bg-gradient-to-b from-[#a6d6fb] to-[#5aadee] text-white shadow-btn"
+                          : "bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-md"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 font-display text-sm font-bold uppercase">
+                        <Car className="h-4 w-4" /> {v.model}
+                      </div>
+                      <div className={`mt-0.5 text-xs font-bold ${selected ? "text-white/80" : "text-slate-400"}`}>
+                        {v.registration_number} · {v.seating_capacity} seats
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <button className="btn-primary" disabled={busy} style={{ marginTop: 8 }}>
-              {busy ? "Calculating…" : "Preview route →"}
-            </button>
-          </form>
-        </div>
-      ) : (
-        <div className="grid cols-2">
-          <div className="surface">
-            <div className="section-title" style={{ marginTop: 0 }}>Confirm route</div>
-            <DynamicMap
-              points={[
-                { lat: origin!.lat, lng: origin!.lng, kind: "origin" },
-                { lat: dest!.lat, lng: dest!.lng, kind: "dest" },
-              ]}
-              route={route!.coordinates}
-            />
           </div>
-          <div className="surface">
-            <div className="section-title" style={{ marginTop: 0 }}>Ride summary</div>
-            <div className="panel" style={{ border: "none", padding: 0 }}>
-              <div className="row"><span className="k">From</span><span>{origin!.label.split(",")[0]}</span></div>
-              <div className="row"><span className="k">To</span><span>{dest!.label.split(",")[0]}</span></div>
-              <div className="row"><span className="k">Distance</span><span>{route!.distanceKm} km</span></div>
-              <div className="row"><span className="k">Duration</span><span>~{Math.round(route!.durationMin)} min</span></div>
-              <div className="row"><span className="k">Departs</span><span>{new Date(departAt).toLocaleString()}</span></div>
-              <div className="row"><span className="k">Seats</span><span>{seats}</span></div>
-              <div className="row"><span className="k">Fare / seat</span><span className="fare">₹{fare}</span></div>
-              {suggestedFare != null && suggestedFare !== fare && (
-                <div className="row">
-                  <span className="k">💡 Fair fare estimate</span>
-                  <span className="chip suggest" onClick={() => setFare(suggestedFare)}>
-                    Apply ₹{suggestedFare}/seat
-                  </span>
-                </div>
-              )}
+
+          {/* Route */}
+          <div className="space-y-3">
+            <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Route</div>
+            <div className="bento space-y-4">
+              <LocationInput label="Pickup / origin" value={origin} onChange={setOrigin} saved={saved} />
+              <LocationInput label="Destination" value={dest} onChange={setDest} saved={saved} />
             </div>
-            <div className="btn-row" style={{ marginTop: 16 }}>
-              <button className="btn-success" onClick={publish} disabled={busy}>
-                {busy ? "Publishing…" : "✅ Publish ride"}
-              </button>
-              <button className="btn-ghost" style={{ padding: "11px 18px" }} onClick={() => setStep("form")}>
-                ← Edit
-              </button>
+          </div>
+
+          {/* Trip details */}
+          <div className="space-y-3">
+            <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Trip details</div>
+            <div className="bento">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="label"><Clock className="mr-1 inline h-3.5 w-3.5" /> Departure</label>
+                  <input type="datetime-local" className="input" value={departAt} onChange={(e) => setDepartAt(e.target.value)} required />
+                </div>
+                <div>
+                  <label className="label"><Users className="mr-1 inline h-3.5 w-3.5" /> Seats offered</label>
+                  <input type="number" min={1} max={20} className="input" value={seats} onChange={(e) => setSeats(+e.target.value)} />
+                </div>
+                <div>
+                  <label className="label"><IndianRupee className="mr-1 inline h-3.5 w-3.5" /> Fare per seat</label>
+                  <input type="number" min={0} className="input" value={fare} onChange={(e) => setFare(+e.target.value)} />
+                </div>
+                <div>
+                  <label className="label"><Repeat className="mr-1 inline h-3.5 w-3.5" /> Recurring</label>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 shadow-inner ring-1 ring-black/10">
+                    <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} className="h-4 w-4 accent-brand-500" />
+                    Runs every weekday
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button className="btn-primary w-full" disabled={busy}>
+            {busy ? "Calculating…" : <><RouteIcon className="h-4 w-4" /> Preview route</>}
+          </button>
+        </form>
+      ) : (
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+          {/* Map */}
+          <div className="space-y-3">
+            <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Confirm route</div>
+            <div className="bento">
+              <DynamicMap
+                points={[
+                  { lat: origin!.lat, lng: origin!.lng, kind: "origin" },
+                  { lat: dest!.lat, lng: dest!.lng, kind: "dest" },
+                ]}
+                route={route!.coordinates}
+              />
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="space-y-3">
+            <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Ride summary</div>
+            <div className="bento">
+              <div className="divide-y divide-black/5">
+                <SummaryRow label="From" value={origin!.label.split(",")[0]} />
+                <SummaryRow label="To" value={dest!.label.split(",")[0]} />
+                <SummaryRow label="Distance" value={`${route!.distanceKm} km`} />
+                <SummaryRow label="Duration" value={`~${Math.round(route!.durationMin)} min`} />
+                <SummaryRow label="Departs" value={new Date(departAt).toLocaleString()} />
+                <SummaryRow label="Seats" value={String(seats)} />
+                <div className="flex items-center justify-between py-2.5 text-sm">
+                  <span className="font-semibold text-slate-500">Fare / seat</span>
+                  <span className="font-display text-lg font-bold text-slate-900">₹{fare}</span>
+                </div>
+              </div>
+
+              {suggestedFare != null && suggestedFare !== fare && (
+                <button
+                  type="button"
+                  onClick={() => setFare(suggestedFare)}
+                  className="mt-3 flex w-full items-center justify-between rounded-xl bg-gradient-to-b from-[#ccfaf3] to-[#7fe6d6] px-3.5 py-2.5 text-left ring-1 ring-black/10 transition hover:brightness-[1.03]"
+                >
+                  <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-teal-800">
+                    <Sparkles className="h-4 w-4" /> Fair fare estimate
+                  </span>
+                  <span className="font-display text-sm font-bold text-teal-900">Apply ₹{suggestedFare}/seat</span>
+                </button>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button className="btn-success" onClick={publish} disabled={busy}>
+                  {busy ? "Publishing…" : <><CheckCircle2 className="h-4 w-4" /> Publish ride</>}
+                </button>
+                <button type="button" className="lp-btn bg-white text-slate-800" onClick={() => setStep("form")}>
+                  <ArrowRight className="h-4 w-4 rotate-180" /> Edit
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between py-2.5 text-sm">
+      <span className="font-semibold text-slate-500">{label}</span>
+      <span className="font-bold text-slate-900">{value}</span>
+    </div>
   );
 }

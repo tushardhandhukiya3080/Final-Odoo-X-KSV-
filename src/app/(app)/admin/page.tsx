@@ -1,4 +1,7 @@
 import { redirect } from "next/navigation";
+import {
+  Users, Car, Route as RouteIcon, TrendingUp, Building2, Shield, SlidersHorizontal,
+} from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import OrgConfigForm from "@/components/admin/OrgConfigForm";
@@ -43,51 +46,106 @@ export default async function AdminPage() {
   ]);
 
   const emp = employees.rows;
+  const participationPct = emp.length ? Math.round((participants / emp.length) * 100) : 0;
 
   return (
-    <>
-      <div className="page-head">
-        <h1>Admin Console</h1>
-        <p>Configure your organization and monitor participation.</p>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#8a95f0] to-[#5560d8] text-white shadow-btn ring-1 ring-black/10">
+          <Building2 className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="font-display text-3xl font-bold uppercase text-slate-900">Admin Console</h1>
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-500">
+            <Shield className="h-3.5 w-3.5" /> Configure your organization and monitor participation.
+          </p>
+        </div>
       </div>
 
-      <div className="grid cols-4">
-        <div className="stat"><div className="label">👥 Employees</div><div className="value">{emp.length}</div></div>
-        <div className="stat"><div className="label">🚙 Vehicles</div><div className="value">{vehicles}</div></div>
-        <div className="stat"><div className="label">🚗 Rides</div><div className="value">{rides}</div><div className="sub">{completed} completed</div></div>
-        <div className="stat"><div className="label">📈 Participation</div><div className="value">{emp.length ? Math.round((participants / emp.length) * 100) : 0}%</div><div className="sub">{participants} active</div></div>
-      </div>
+      <Section label="Overview">
+        <div className="bento-grid">
+          <StatTile className="lg:col-span-3" icon={<Users className="h-4 w-4" />} label="Employees" value={emp.length} />
+          <StatTile className="lg:col-span-3" icon={<Car className="h-4 w-4" />} label="Vehicles" value={vehicles} />
+          <StatTile className="lg:col-span-3" tint="from-[#ccfaf3] to-[#7fe6d6]" icon={<RouteIcon className="h-4 w-4" />} label="Rides" value={rides} sub={`${completed} completed`} />
+          <StatTile className="lg:col-span-3" tint="from-[#a6d6fb] to-[#5aadee]" icon={<TrendingUp className="h-4 w-4" />} label="Participation" value={`${participationPct}%`} sub={`${participants} active`} />
+        </div>
+      </Section>
 
-      <div className="section-title">Configuration</div>
-      <OrgConfigForm />
+      <Section label="Configuration">
+        <OrgConfigForm />
+      </Section>
 
-      <div className="section-title">Employees</div>
-      <div className="table-wrap">
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Phone</th>
-              <th>Wallet</th>
-              <th>Joined</th>
-            </tr>
-          </thead>
-          <tbody>
-            {emp.map((e) => (
-              <tr key={e.id}>
-                <td>{e.name ?? "—"}</td>
-                <td>{e.email}</td>
-                <td><span className={`pill ${e.role}`}>{e.role}</span></td>
-                <td>{e.phone ?? "—"}</td>
-                <td>₹{Number(e.wallet_balance).toFixed(0)}</td>
-                <td>{new Date(e.created_at).toLocaleDateString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+      <Section label="Employees">
+        {emp.length === 0 ? (
+          <div className="grid place-items-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/50 py-14 text-center shadow-inner">
+            <Users className="mb-3 h-10 w-10 text-slate-300" />
+            <div className="font-display text-lg font-bold text-slate-700">No employees yet</div>
+            <div className="mt-1 max-w-sm text-sm font-medium text-slate-400">Invite your team to start sharing rides.</div>
+          </div>
+        ) : (
+          <div className="bento">
+            <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700">
+              <SlidersHorizontal className="h-4 w-4 text-brand-500" /> Team roster
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                    <th className="py-2 pr-3">Name</th>
+                    <th className="py-2 pr-3">Email</th>
+                    <th className="py-2 pr-3">Role</th>
+                    <th className="py-2 pr-3">Phone</th>
+                    <th className="py-2 pr-3 text-right">Wallet</th>
+                    <th className="py-2 text-right">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {emp.map((e) => (
+                    <tr key={e.id}>
+                      <td className="py-2.5 pr-3 font-semibold text-slate-900">{e.name ?? "—"}</td>
+                      <td className="py-2.5 pr-3 font-medium text-slate-600">{e.email}</td>
+                      <td className="py-2.5 pr-3"><RoleBadge role={e.role} /></td>
+                      <td className="py-2.5 pr-3 font-medium text-slate-600">{e.phone ?? "—"}</td>
+                      <td className="py-2.5 pr-3 text-right font-semibold text-slate-900">₹{Number(e.wallet_balance).toFixed(0)}</td>
+                      <td className="py-2.5 text-right font-medium text-slate-500">{new Date(e.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function StatTile({ className = "", tint, icon, label, value, sub }: {
+  className?: string; tint?: string; icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string;
+}) {
+  return (
+    <div className={`bento bento-hover ${tint ? `bg-gradient-to-b ${tint}` : ""} ${className}`}>
+      <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">{icon}{label}</div>
+      <div className="mt-1 font-display text-3xl font-bold text-slate-900">{value}</div>
+      {sub && <div className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">{sub}</div>}
+    </div>
+  );
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const tint = role === "admin"
+    ? "bg-gradient-to-b from-[#8a95f0] to-[#5560d8] text-white"
+    : "bg-gradient-to-b from-[#a6d6fb] to-[#5aadee] text-white";
+  return (
+    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold uppercase ring-1 ring-black/10 ${tint}`}>{role}</span>
   );
 }

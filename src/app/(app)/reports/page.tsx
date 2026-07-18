@@ -1,3 +1,7 @@
+import {
+  Route as RouteIcon, Navigation, Fuel, IndianRupee, Gauge, Calculator,
+  Leaf, TreePine, Car,
+} from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { loadUserEco } from "@/lib/eco";
@@ -78,113 +82,143 @@ export default async function ReportsPage() {
   const maxEff = Math.max(1, ...vehicles.map((v) => v.mileage));
 
   return (
-    <>
-      <div className="page-head">
-        <h1>Reports &amp; Analytics</h1>
-        <p>Your travel activity and transportation cost insights.</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-3xl font-bold uppercase text-slate-900">Reports &amp; Analytics</h1>
+        <p className="text-sm font-semibold text-slate-500">Your travel activity and transportation cost insights.</p>
       </div>
 
-      <div className="grid cols-3">
-        <Stat icon="🧭" label="Total trips" value={`${rides.length + passengerTrips}`} sub={`${rides.length} driven · ${passengerTrips} taken`} />
-        <Stat icon="📏" label="Distance driven" value={`${totalDistance.toFixed(1)} km`} />
-        <Stat icon="⛽" label="Fuel consumed" value={`${totalLitres.toFixed(1)} L`} sub={`@ ₹${fuelPrice}/L`} />
-        <Stat icon="💰" label="Fuel cost" value={`₹${fuelCost.toFixed(0)}`} />
-        <Stat icon="🛣️" label="Cost per km" value={`₹${costPerKm.toFixed(2)}`} sub="org configured" />
-        <Stat icon="🧮" label="Est. travel cost" value={`₹${travelCost.toFixed(0)}`} sub={`${totalDistance.toFixed(0)} km × ₹${costPerKm}`} />
-      </div>
+      <Section label="Overview">
+        <div className="bento-grid">
+          <Stat className="lg:col-span-4" icon={<RouteIcon className="h-4 w-4" />} label="Total trips" value={`${rides.length + passengerTrips}`} sub={`${rides.length} driven · ${passengerTrips} taken`} />
+          <Stat className="lg:col-span-4" tint="bg-gradient-to-b from-[#a6d6fb] to-[#5aadee]" icon={<Navigation className="h-4 w-4" />} label="Distance driven" value={`${totalDistance.toFixed(1)} km`} />
+          <Stat className="lg:col-span-4" icon={<Fuel className="h-4 w-4" />} label="Fuel consumed" value={`${totalLitres.toFixed(1)} L`} sub={`@ ₹${fuelPrice}/L`} />
+          <Stat className="lg:col-span-4" dark tint="bg-gradient-to-b from-[#fcd775] to-[#efab24]" icon={<IndianRupee className="h-4 w-4" />} label="Fuel cost" value={`₹${fuelCost.toFixed(0)}`} />
+          <Stat className="lg:col-span-4" tint="bg-gradient-to-b from-[#ccfaf3] to-[#7fe6d6]" icon={<Gauge className="h-4 w-4" />} label="Cost per km" value={`₹${costPerKm.toFixed(2)}`} sub="org configured" />
+          <Stat className="lg:col-span-4" icon={<Calculator className="h-4 w-4" />} label="Est. travel cost" value={`₹${travelCost.toFixed(0)}`} sub={`${totalDistance.toFixed(0)} km × ₹${costPerKm}`} />
+        </div>
+      </Section>
 
-      <div className="section-title">🌱 Carbon footprint &amp; savings</div>
-      <div className="eco-hero" style={{ marginBottom: 4 }}>
-        <div className="row-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 20 }}>
-          <div>
-            <div className="muted sm">Sustainability score</div>
-            <div className="score">{eco.greenScore}<span style={{ fontSize: "1rem", color: "var(--muted)" }}> / 100</span></div>
-            <div className="muted sm">from {eco.sharedTrips} shared trip{eco.sharedTrips === 1 ? "" : "s"}</div>
+      <Section label="🌱 Carbon Footprint & Savings">
+        <div className="bento-brand">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-xs font-extrabold uppercase tracking-wider text-brand-100">Sustainability score</div>
+              <div className="font-display text-6xl font-bold leading-none">{eco.greenScore}<span className="align-top text-lg font-bold text-brand-100"> / 100</span></div>
+              <div className="mt-1 text-sm font-semibold text-brand-100">from {eco.sharedTrips} shared trip{eco.sharedTrips === 1 ? "" : "s"}</div>
+            </div>
+            <div className="text-5xl">🌍</div>
           </div>
-          <div className="grid cols-4" style={{ flex: 1, minWidth: 280 }}>
-            <div className="stat eco-tile"><div className="label">💨 CO₂ saved</div><div className="value">{eco.co2Kg} kg</div></div>
-            <div className="stat eco-tile"><div className="label">⛽ Fuel saved</div><div className="value">{eco.fuelSavedL} L</div></div>
-            <div className="stat eco-tile"><div className="label">💰 Money saved</div><div className="value">₹{eco.moneySaved}</div></div>
-            <div className="stat eco-tile"><div className="label">🌳 Trees / yr</div><div className="value">{eco.trees}</div></div>
+          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <GreenStat icon={<Leaf className="h-4 w-4" />} label="CO₂ saved" value={`${eco.co2Kg} kg`} />
+            <GreenStat icon={<Fuel className="h-4 w-4" />} label="Fuel saved" value={`${eco.fuelSavedL} L`} />
+            <GreenStat icon={<IndianRupee className="h-4 w-4" />} label="Money saved" value={`₹${eco.moneySaved}`} />
+            <GreenStat icon={<TreePine className="h-4 w-4" />} label="Trees / yr" value={String(eco.trees)} />
           </div>
         </div>
-      </div>
+      </Section>
 
-      <div className="section-title">Monthly distance</div>
-      <div className="surface">
-        {totalDistance === 0 ? (
-          <p className="muted sm">Complete a few trips to see trends.</p>
-        ) : (
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 16, height: 180 }}>
-            {monthly.map((m) => (
-              <div key={m.label} style={{ flex: 1, textAlign: "center" }}>
-                <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", height: 140 }}>
-                  <div
-                    title={`${m.distance.toFixed(1)} km`}
-                    style={{
-                      width: 34,
-                      height: `${(m.distance / maxMonthly) * 100}%`,
-                      minHeight: m.distance > 0 ? 4 : 0,
-                      background: "linear-gradient(180deg, var(--primary), var(--accent))",
-                      borderRadius: "6px 6px 0 0",
-                    }}
-                  />
+      <Section label="Monthly Distance">
+        <div className="bento">
+          {totalDistance === 0 ? (
+            <p className="text-sm font-semibold text-slate-400">Complete a few trips to see trends.</p>
+          ) : (
+            <div className="flex items-end gap-4" style={{ height: 180 }}>
+              {monthly.map((m) => (
+                <div key={m.label} className="flex-1 text-center">
+                  <div className="flex items-end justify-center" style={{ height: 140 }}>
+                    <div
+                      title={`${m.distance.toFixed(1)} km`}
+                      className="w-8 rounded-t-lg bg-gradient-to-t from-[#5aadee] to-[#a6d6fb] shadow-btn ring-1 ring-black/10"
+                      style={{ height: `${(m.distance / maxMonthly) * 100}%`, minHeight: m.distance > 0 ? 4 : 0 }}
+                    />
+                  </div>
+                  <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">{m.label}</div>
                 </div>
-                <div className="muted sm" style={{ marginTop: 6 }}>{m.label}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <Section label="Vehicle-wise Cost Analysis">
+        {vehicles.length === 0 ? (
+          <div className="grid place-items-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/50 py-14 text-center shadow-inner">
+            <Car className="mb-3 h-10 w-10 text-slate-300" />
+            <div className="font-display text-lg font-bold text-slate-700">No driven trips yet</div>
+            <div className="mt-1 max-w-sm text-sm font-medium text-slate-400">Drive a shared ride to build your vehicle cost breakdown.</div>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {vehicles.map((v) => (
+              <div key={v.name} className="bento bento-hover">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 font-display text-base font-bold uppercase text-slate-900">
+                    <Car className="h-4 w-4 text-brand-500" />{v.name}
+                  </div>
+                  <span className="rounded-full bg-gradient-to-b from-[#2dd4bf] to-[#0d9488] px-2.5 py-0.5 text-[11px] font-extrabold uppercase text-white ring-1 ring-black/10">{v.mileage} km/L</span>
+                </div>
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  <MiniStat label="Trips" value={String(v.trips)} />
+                  <MiniStat label="Distance" value={`${v.distance.toFixed(1)} km`} />
+                  <MiniStat label="Fuel" value={`${v.litres.toFixed(1)} L`} />
+                  <MiniStat label="Cost" value={`₹${v.cost.toFixed(0)}`} />
+                </div>
+                <div className="mt-4">
+                  <div className="mb-1 flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+                    <span>Efficiency</span><span>{v.mileage} km/L</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-200 ring-1 ring-black/5">
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#a6d6fb] to-[#5aadee]" style={{ width: `${(v.mileage / maxEff) * 100}%` }} />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-
-      <div className="section-title">Vehicle-wise cost analysis</div>
-      {vehicles.length === 0 ? (
-        <div className="surface empty">No driven trips yet.</div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Vehicle</th>
-                <th>Trips</th>
-                <th>Distance</th>
-                <th>Fuel</th>
-                <th>Fuel cost</th>
-                <th>Efficiency</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.map((v) => (
-                <tr key={v.name}>
-                  <td>{v.name}</td>
-                  <td>{v.trips}</td>
-                  <td>{v.distance.toFixed(1)} km</td>
-                  <td>{v.litres.toFixed(1)} L</td>
-                  <td>₹{v.cost.toFixed(0)}</td>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div className="bar" style={{ width: 80 }}>
-                        <div className="bar-fill" style={{ width: `${(v.mileage / maxEff) * 100}%` }} />
-                      </div>
-                      {v.mileage} km/L
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
+      </Section>
+    </div>
   );
 }
 
-function Stat({ icon, label, value, sub }: { icon: string; label: string; value: string; sub?: string }) {
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="stat">
-      <div className="label">{icon} {label}</div>
-      <div className="value">{value}</div>
-      {sub && <div className="sub">{sub}</div>}
+    <div className="space-y-3">
+      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function Stat({ className = "", tint = "", dark = false, icon, label, value, sub }: {
+  className?: string; tint?: string; dark?: boolean; icon: React.ReactNode; label: string; value: string; sub?: string;
+}) {
+  const muted = dark ? "text-[#5c3702]/80" : "text-slate-500";
+  const strong = dark ? "text-[#5c3702]" : "text-slate-900";
+  const subC = dark ? "text-[#5c3702]/70" : "text-slate-400";
+  return (
+    <div className={`bento bento-hover ${tint} ${className}`}>
+      <div className={`flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider ${muted}`}>{icon}{label}</div>
+      <div className={`mt-1 font-display text-3xl font-bold ${strong}`}>{value}</div>
+      {sub && <div className={`mt-0.5 text-[11px] font-bold uppercase tracking-wide ${subC}`}>{sub}</div>}
+    </div>
+  );
+}
+
+function GreenStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white/95 p-3 text-slate-900 ring-1 ring-black/10">
+      <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{icon}{label}</div>
+      <div className="mt-1 font-display text-2xl font-bold">{value}</div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] font-extrabold uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="mt-0.5 font-display text-sm font-bold text-slate-900">{value}</div>
     </div>
   );
 }
