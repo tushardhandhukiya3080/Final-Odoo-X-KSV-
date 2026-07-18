@@ -1,0 +1,181 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bookings {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ride_id        String     @db.Uuid
+  passenger_id   String     @db.Uuid
+  seats          Int        @default(1)
+  pickup_label   String
+  pickup_lat     Float
+  pickup_lng     Float
+  drop_label     String
+  drop_lat       Float
+  drop_lng       Float
+  fare_amount    Decimal    @default(0) @db.Decimal(10, 2)
+  status         String     @default("booked")
+  payment_status String     @default("pending")
+  created_at     DateTime   @default(now()) @db.Timestamptz(6)
+  users          users      @relation(fields: [passenger_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rides          rides      @relation(fields: [ride_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payments       payments[]
+
+  @@unique([ride_id, passenger_id])
+  @@index([passenger_id], map: "bookings_passenger_idx")
+  @@index([ride_id], map: "bookings_ride_idx")
+}
+
+model documents {
+  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content    String
+  metadata   Json                   @default("{}")
+  embedding  Unsupported("vector")?
+  created_at DateTime               @default(now()) @db.Timestamptz(6)
+
+  @@index([embedding])
+}
+
+model messages {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ride_id    String   @db.Uuid
+  sender_id  String   @db.Uuid
+  body       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  rides      rides    @relation(fields: [ride_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users    @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ride_id, created_at], map: "messages_ride_idx")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model organizations {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  domain               String?
+  currency             String   @default("INR")
+  fuel_price_per_litre Decimal  @default(100) @db.Decimal(10, 2)
+  default_fare_per_km  Decimal  @default(8) @db.Decimal(10, 2)
+  cost_per_km          Decimal  @default(6) @db.Decimal(10, 2)
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+  rides                rides[]
+  users                users[]
+}
+
+model payments {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  booking_id          String   @db.Uuid
+  method              String
+  amount              Decimal  @db.Decimal(10, 2)
+  status              String   @default("pending")
+  razorpay_order_id   String?
+  razorpay_payment_id String?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  bookings            bookings @relation(fields: [booking_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([booking_id], map: "payments_booking_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model rides {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driver_id       String        @db.Uuid
+  vehicle_id      String        @db.Uuid
+  organization_id String        @db.Uuid
+  origin_label    String
+  origin_lat      Float
+  origin_lng      Float
+  dest_label      String
+  dest_lat        Float
+  dest_lng        Float
+  route_geometry  String?
+  distance_km     Decimal       @default(0) @db.Decimal(8, 2)
+  duration_min    Decimal       @default(0) @db.Decimal(8, 2)
+  depart_at       DateTime      @db.Timestamptz(6)
+  seats_total     Int
+  seats_available Int
+  fare_per_seat   Decimal       @default(0) @db.Decimal(10, 2)
+  status          String        @default("published")
+  is_recurring    Boolean       @default(false)
+  recur_days      String?
+  last_lat        Float?
+  last_lng        Float?
+  last_ping_at    DateTime?     @db.Timestamptz(6)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  bookings        bookings[]
+  messages        messages[]
+  users           users         @relation(fields: [driver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles        vehicles      @relation(fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([depart_at], map: "rides_depart_idx")
+  @@index([driver_id], map: "rides_driver_idx")
+  @@index([organization_id, status], map: "rides_org_status_idx")
+}
+
+model saved_places {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  label      String
+  address    String
+  lat        Float
+  lng        Float
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "saved_places_user_idx")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String
+  password_hash   String
+  name            String?
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+  organization_id String?        @db.Uuid
+  role            String         @default("employee")
+  phone           String?
+  wallet_balance  Decimal        @default(0) @db.Decimal(12, 2)
+  bookings        bookings[]
+  messages        messages[]
+  rides           rides[]
+  saved_places    saved_places[]
+  organizations   organizations? @relation(fields: [organization_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles        vehicles[]
+  wallet_txns     wallet_txns[]
+
+  @@index([organization_id], map: "users_org_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model vehicles {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String   @db.Uuid
+  model               String
+  registration_number String
+  seating_capacity    Int
+  fuel_type           String   @default("petrol")
+  mileage_kmpl        Decimal  @default(15) @db.Decimal(6, 2)
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  rides               rides[]
+  users               users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "vehicles_user_idx")
+}
+
+model wallet_txns {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String   @db.Uuid
+  type          String
+  amount        Decimal  @db.Decimal(10, 2)
+  balance_after Decimal  @db.Decimal(12, 2)
+  reference     String?
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  users         users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, created_at(sort: Desc)], map: "wallet_txns_user_idx")
+}

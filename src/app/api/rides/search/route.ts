@@ -5,7 +5,8 @@ import { haversineKm } from "@/lib/geo";
 
 // Ride matching: same org + published + seats + date window, then rank by how
 // close the ride's origin/dest are to the searcher's (haversine).
-const RADIUS_KM = 7;
+// Generous radius so approximate typed addresses still match in a city.
+const RADIUS_KM = 15;
 
 interface RideRow {
   id: string;
