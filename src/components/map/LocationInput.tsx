@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import MapPicker from "./MapPicker";
 
 export interface PlaceValue {
   lat: number;
@@ -28,6 +29,7 @@ export default function LocationInput({ label, value, onChange, saved = [], plac
   const [hits, setHits] = useState<PlaceValue[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -93,6 +95,7 @@ export default function LocationInput({ label, value, onChange, saved = [], plac
         autoComplete="off"
       />
       <div className="chips" style={{ marginTop: 8 }}>
+        <span className="chip suggest" onClick={() => setMapOpen(true)}>🗺️ Pick on map</span>
         <span className="chip" onClick={useCurrent}>📍 Current</span>
         {saved.map((s) => (
           <span key={s.label} className="chip" onClick={() => pick({ lat: s.lat, lng: s.lng, label: s.address })}>
@@ -110,6 +113,15 @@ export default function LocationInput({ label, value, onChange, saved = [], plac
           ))}
         </ul>
       )}
+      <MapPicker
+        open={mapOpen}
+        initial={value}
+        onClose={() => setMapOpen(false)}
+        onSelect={(v) => {
+          pick(v);
+          setMapOpen(false);
+        }}
+      />
     </div>
   );
 }

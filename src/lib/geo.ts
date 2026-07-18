@@ -7,11 +7,11 @@ const OSRM = process.env.OSRM_URL || "https://router.project-osrm.org";
 const NOMINATIM = process.env.NOMINATIM_URL || "https://nominatim.openstreetmap.org";
 const UA = "RideShare-Carpool/1.0 (hackathon demo)";
 
-/** Driving route between two points: distance, duration, and geojson geometry. */
-export async function routeBetween(from: LatLng, to: LatLng): Promise<RouteResult> {
-  const url =
-    `${OSRM}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}` +
-    `?overview=full&geometries=geojson`;
+/** Driving route through an ordered list of points (>=2), via OSRM waypoints. */
+export async function routeVia(points: LatLng[]): Promise<RouteResult> {
+  if (points.length < 2) throw new ApiError("Need at least an origin and destination", 400);
+  const coords = points.map((p) => `${p.lng},${p.lat}`).join(";");
+  const url = `${OSRM}/route/v1/driving/${coords}?overview=full&geometries=geojson`;
   let data: {
     routes?: { distance: number; duration: number; geometry: { coordinates: [number, number][] } }[];
   };
@@ -31,6 +31,11 @@ export async function routeBetween(from: LatLng, to: LatLng): Promise<RouteResul
   };
 }
 
+/** Driving route between two points: distance, duration, and geojson geometry. */
+export function routeBetween(from: LatLng, to: LatLng): Promise<RouteResult> {
+  return routeVia([from, to]);
+}
+
 export interface GeocodeHit {
   label: string;
   lat: number;
@@ -47,6 +52,20 @@ export async function geocode(q: string): Promise<GeocodeHit[]> {
     return data.map((d) => ({ label: d.display_name, lat: Number(d.lat), lng: Number(d.lon) }));
   } catch {
     return [];
+  }
+}
+
+/** Coordinates → a human address label (Nominatim reverse geocoding). */
+export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  const fallback = `Pinned (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+  const url = `${NOMINATIM}/reverse?format=json&lat=${lat}&lon=${lng}`;
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": UA } });
+    if (!res.ok) return fallback;
+    const d: { display_name?: string } = await res.json();
+    return d.display_name || fallback;
+  } catch {
+    return fallback;
   }
 }
 

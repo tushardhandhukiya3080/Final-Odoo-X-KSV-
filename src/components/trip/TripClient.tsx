@@ -16,7 +16,15 @@ const LIFECYCLE = [
   { key: "paid", label: "Payment completed" },
 ];
 
-export default function TripClient({ id, currentUserId }: { id: string; currentUserId: string }) {
+export default function TripClient({
+  id,
+  currentUserId,
+  trackMode = "gps",
+}: {
+  id: string;
+  currentUserId: string;
+  trackMode?: "manual" | "gps";
+}) {
   const [d, setD] = useState<TripDetail | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [live, setLive] = useState<{ lat: number; lng: number } | null>(null);
@@ -58,8 +66,10 @@ export default function TripClient({ id, currentUserId }: { id: string; currentU
   // Live updates for this trip (location, chat, lifecycle) via the shared stream.
   useAppEvents((ev) => {
     if (ev.data?.rideId !== id) return;
-    if (ev.type === "trip.location") {
-      setLive({ lat: ev.data.lat as number, lng: ev.data.lng as number });
+    if (ev.type === "trip.location" || ev.type === "trip.progress") {
+      const lat = ev.data.lat as number;
+      const lng = ev.data.lng as number;
+      if (Number.isFinite(lat) && Number.isFinite(lng)) setLive({ lat, lng });
     } else if (ev.type === "chat.message") {
       setMessages((prev) => [
         ...prev,
@@ -76,7 +86,10 @@ export default function TripClient({ id, currentUserId }: { id: string; currentU
   });
 
   // Driver shares GPS while the trip is live (throttled to ~4s).
+  // Only in GPS mode — for manual rides the "Reached next stop" progress owns the
+  // position, so auto-pinging the phone's real location would fight it.
   useEffect(() => {
+    if (trackMode !== "gps") return;
     if (!d?.isDriver) return;
     const active = d.ride.status === "started" || d.ride.status === "in_progress";
     if (!active || !navigator.geolocation) return;
@@ -94,7 +107,7 @@ export default function TripClient({ id, currentUserId }: { id: string; currentU
       { enableHighAccuracy: true, maximumAge: 3000 },
     );
     return () => navigator.geolocation.clearWatch(watch);
-  }, [d?.isDriver, d?.ride.status, id]);
+  }, [trackMode, d?.isDriver, d?.ride.status, id]);
 
   async function setStatus(status: string) {
     setBusy(true);

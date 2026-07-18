@@ -40,6 +40,10 @@ CREATE TABLE IF NOT EXISTS vehicles (
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS vehicles_user_idx ON vehicles (user_id);
+-- Vehicle kind (drives the map marker icon): bike or car.
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS vehicle_type TEXT NOT NULL DEFAULT 'car';
+-- Set true when the number plate was scanned + read + format-validated.
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS plate_verified BOOLEAN NOT NULL DEFAULT false;
 
 -- ── Saved places (Home / Office / custom) ────────────────────────────────────
 CREATE TABLE IF NOT EXISTS saved_places (
@@ -83,6 +87,13 @@ CREATE TABLE IF NOT EXISTS rides (
 CREATE INDEX IF NOT EXISTS rides_org_status_idx ON rides (organization_id, status);
 CREATE INDEX IF NOT EXISTS rides_driver_idx ON rides (driver_id);
 CREATE INDEX IF NOT EXISTS rides_depart_idx ON rides (depart_at);
+
+-- Multi-stop routing + live progress (manual stop-by-stop or GPS auto-track).
+-- Waypoints in travel order are [origin, ...stops, dest]; progress_index is the
+-- index of the last waypoint the driver has reached (0 = still at origin).
+ALTER TABLE rides ADD COLUMN IF NOT EXISTS stops          JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE rides ADD COLUMN IF NOT EXISTS track_mode     TEXT  NOT NULL DEFAULT 'gps';   -- 'manual' | 'gps'
+ALTER TABLE rides ADD COLUMN IF NOT EXISTS progress_index INT   NOT NULL DEFAULT 0;
 
 -- ── Bookings (a passenger's seat on a ride) ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS bookings (

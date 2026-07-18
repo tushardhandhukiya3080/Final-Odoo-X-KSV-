@@ -45,16 +45,19 @@ const lat = z.number().min(-90).max(90);
 const lng = z.number().min(-180).max(180);
 const point = z.object({ lat, lng });
 
-export const routeSchema = z.object({ from: point, to: point });
+export const routeSchema = z.object({ from: point, to: point, via: z.array(point).max(10).default([]) });
 export const geocodeSchema = z.object({ q: z.string().trim().min(2).max(200) });
 
 // ── Vehicles ─────────────────────────────────────────────────────────────────
 export const vehicleSchema = z.object({
   model: z.string().trim().min(1, "Model is required").max(100),
   registrationNumber: z.string().trim().min(1, "Registration number is required").max(30),
+  vehicleType: z.enum(["bike", "car"]).default("car"),
   seatingCapacity: z.coerce.number().int().min(1).max(20),
   fuelType: z.enum(["petrol", "diesel", "cng", "ev"]).default("petrol"),
   mileageKmpl: z.coerce.number().min(1).max(100).default(15),
+  // true when the plate was scanned + OCR-read + format-validated on the client.
+  plateVerified: z.boolean().default(false),
 });
 
 // ── Saved places ─────────────────────────────────────────────────────────────
@@ -66,16 +69,25 @@ export const placeSchema = z.object({
 });
 
 // ── Offer a ride ─────────────────────────────────────────────────────────────
+const placePoint = point.extend({ label: z.string().trim().min(1).max(300) });
+
 export const offerRideSchema = z.object({
   vehicleId: z.string().uuid("Select a vehicle"),
-  origin: point.extend({ label: z.string().trim().min(1).max(300) }),
-  dest: point.extend({ label: z.string().trim().min(1).max(300) }),
+  origin: placePoint,
+  dest: placePoint,
+  // Intermediate stops along the route (manual mode). Empty for a direct trip.
+  stops: z.array(placePoint).max(10).default([]),
+  // How the ride's live position is tracked: driver taps each stop, or GPS.
+  trackMode: z.enum(["manual", "gps"]).default("gps"),
   departAt: z.coerce.date(),
   seats: z.coerce.number().int().min(1).max(20),
   farePerSeat: z.coerce.number().min(0).max(100000),
   isRecurring: z.boolean().default(false),
   recurDays: z.string().trim().max(20).optional(),
 });
+
+// Driver advances to the next stop (manual mode).
+export const progressSchema = z.object({ action: z.enum(["advance", "reset"]).default("advance") });
 
 // ── Find a ride ──────────────────────────────────────────────────────────────
 export const searchRideSchema = z.object({

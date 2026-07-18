@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Car, Plus, Trash2, Fuel, Users, Gauge } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Car, Bike, Plus, Trash2, Fuel, Users, Gauge, Camera, ScanLine,
+  CheckCircle2, ShieldCheck, Loader2, AlertTriangle,
+} from "lucide-react";
 import { api } from "@/lib/client";
-import type { Vehicle } from "@/lib/types";
+import { extractPlate } from "@/lib/plate";
+import type { Vehicle, VehicleType } from "@/lib/types";
+import type { RcResult } from "@/lib/rc";
 
 const FUELS = ["petrol", "diesel", "cng", "ev"] as const;
+type ScanState = "idle" | "scanning" | "found" | "notfound" | "error";
+type RcState = RcResult & { phase: "checking" | "done" };
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -15,9 +22,78 @@ export default function VehiclesPage() {
 
   const [model, setModel] = useState("");
   const [reg, setReg] = useState("");
+  const [type, setType] = useState<VehicleType>("car");
   const [seats, setSeats] = useState(4);
   const [fuel, setFuel] = useState<(typeof FUELS)[number]>("petrol");
   const [mileage, setMileage] = useState(15);
+
+  const [scan, setScan] = useState<ScanState>("idle");
+  const [platePreview, setPlatePreview] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
+  const [rc, setRc] = useState<RcState | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Verify the plate against the RTO/VAHAN database (Cashfree). When a provider
+  // key is configured it becomes the source of truth for "verified".
+  async function runRto(plate: string) {
+    const p = plate.trim();
+    if (!p) return;
+    setRc({ phase: "checking", configured: false, ok: false });
+    try {
+      const r = await api<RcResult>("/api/vehicles/verify-rc", { method: "POST", body: { plate: p } });
+      setRc({ phase: "done", ...r });
+      if (r.configured) setVerified(r.ok); // RTO is authoritative when set up
+    } catch {
+      setRc({ phase: "done", configured: false, ok: false, reason: "Verification failed" });
+    }
+  }
+
+  function pickType(t: VehicleType) {
+    setType(t);
+    setSeats(t === "bike" ? 1 : 4); // bikes carry a single pillion by default
+  }
+
+  function onRegChange(val: string) {
+    setReg(val);
+    setVerified(false); // typing by hand clears the scanned-verified state
+    setRc(null);
+    if (scan !== "idle") setScan("idle");
+  }
+
+  function resetScan() {
+    setScan("idle");
+    setVerified(false);
+    setRc(null);
+    if (platePreview) URL.revokeObjectURL(platePreview);
+    setPlatePreview(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  // Scan / upload a number-plate image → OCR (tesseract.js) → extract + validate.
+  async function onPlateFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (platePreview) URL.revokeObjectURL(platePreview);
+    setPlatePreview(URL.createObjectURL(file));
+    setScan("scanning");
+    setError(null);
+    try {
+      const Tesseract = (await import("tesseract.js")).default;
+      const { data } = await Tesseract.recognize(file, "eng");
+      const plate = extractPlate(data.text);
+      if (plate) {
+        setReg(plate);
+        setVerified(true);
+        setScan("found");
+        runRto(plate); // cross-check the scanned plate against the RTO
+      } else {
+        setVerified(false);
+        setScan("notfound");
+      }
+    } catch {
+      setScan("error");
+    }
+  }
 
   async function load() {
     try {
@@ -42,15 +118,18 @@ export default function VehiclesPage() {
         body: {
           model,
           registrationNumber: reg,
+          vehicleType: type,
           seatingCapacity: seats,
           fuelType: fuel,
           mileageKmpl: mileage,
+          plateVerified: verified,
         },
       });
       setModel("");
       setReg("");
-      setSeats(4);
+      pickType("car");
       setMileage(15);
+      resetScan();
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -83,13 +162,87 @@ export default function VehiclesPage() {
         <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Add a vehicle</div>
         <div className="bento">
           <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" onSubmit={add}>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="label">Vehicle type</label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["car", "bike"] as const).map((t) => {
+                  const on = type === t;
+                  const Icon = t === "bike" ? Bike : Car;
+                  return (
+                    <button
+                      type="button"
+                      key={t}
+                      onClick={() => pickType(t)}
+                      className={`flex items-center gap-2 rounded-xl px-3.5 py-2.5 font-display text-sm font-bold uppercase ring-1 ring-black/10 transition ${on ? "bg-gradient-to-b from-[#a6d6fb] to-[#5aadee] text-white shadow-btn" : "bg-white text-slate-700 hover:-translate-y-0.5 hover:shadow-md"}`}
+                    >
+                      <Icon className="h-5 w-5" /> {t}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Number-plate scan / verify */}
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="label">Verify by number plate</label>
+              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onPlateFile} className="hidden" />
+              <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white p-3 shadow-inner ring-1 ring-black/10">
+                <button type="button" onClick={() => fileRef.current?.click()} className="lp-btn bg-gradient-to-b from-[#a6d6fb] to-[#5aadee] text-white">
+                  {scan === "scanning" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />} Scan / upload plate
+                </button>
+                {platePreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={platePreview} alt="number plate" className="h-11 w-20 rounded-lg object-cover ring-1 ring-black/10" />
+                )}
+                <div className="text-xs font-semibold">
+                  {scan === "idle" && <span className="inline-flex items-center gap-1.5 text-slate-400"><ScanLine className="h-3.5 w-3.5" /> Snap or upload the number plate — we read &amp; verify it automatically.</span>}
+                  {scan === "scanning" && <span className="inline-flex items-center gap-1.5 text-brand-600"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading plate…</span>}
+                  {scan === "found" && <span className="inline-flex items-center gap-1.5 text-teal-700"><CheckCircle2 className="h-4 w-4" /> Detected &amp; verified: <b>{reg}</b></span>}
+                  {scan === "notfound" && <span className="inline-flex items-center gap-1.5 text-amber-700"><AlertTriangle className="h-4 w-4" /> Couldn&apos;t read it — type the plate manually.</span>}
+                  {scan === "error" && <span className="inline-flex items-center gap-1.5 text-rose-600"><AlertTriangle className="h-4 w-4" /> Scan failed — enter it manually.</span>}
+                </div>
+                {scan !== "idle" && (
+                  <button type="button" onClick={resetScan} className="ml-auto text-xs font-bold uppercase text-slate-400 transition hover:text-slate-600">Clear</button>
+                )}
+              </div>
+
+              {/* RTO / VAHAN lookup */}
+              {reg.trim().length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-3 rounded-xl bg-white p-3 shadow-inner ring-1 ring-black/10">
+                  <button
+                    type="button"
+                    onClick={() => runRto(reg)}
+                    disabled={rc?.phase === "checking"}
+                    className="lp-btn bg-gradient-to-b from-[#2dd4bf] to-[#0d9488] text-white"
+                  >
+                    {rc?.phase === "checking" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Verify with RTO
+                  </button>
+                  <div className="min-w-0 flex-1 text-xs font-semibold">
+                    {!rc && <span className="text-slate-400">Check this plate against the VAHAN / RTO database.</span>}
+                    {rc?.phase === "checking" && <span className="text-brand-600">Checking VAHAN…</span>}
+                    {rc?.phase === "done" && !rc.configured && (
+                      <span className="text-slate-400">RTO lookup isn&apos;t configured — plate format-checked only.</span>
+                    )}
+                    {rc?.phase === "done" && rc.configured && rc.ok && (
+                      <span className="text-teal-700">✅ RTO verified · <b>{rc.owner}</b> · {rc.model ?? rc.manufacturer} · reg {rc.regDate} · insured till {rc.insuranceUpto} · {rc.rcStatus}</span>
+                    )}
+                    {rc?.phase === "done" && rc.configured && !rc.ok && (
+                      <span className="text-rose-600">⚠️ RTO: {rc.reason}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="label">Model</label>
-              <input className="input" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Honda City" required />
+              <input className="input" value={model} onChange={(e) => setModel(e.target.value)} placeholder={type === "bike" ? "Royal Enfield" : "Honda City"} required />
             </div>
             <div>
-              <label className="label">Registration number</label>
-              <input className="input" value={reg} onChange={(e) => setReg(e.target.value)} placeholder="GJ01AB1234" required />
+              <label className="label">
+                Registration number
+                {verified && <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-extrabold uppercase text-teal-600"><ShieldCheck className="h-3 w-3" /> verified</span>}
+              </label>
+              <input className={`input ${verified ? "ring-2 ring-teal-400" : ""}`} value={reg} onChange={(e) => onRegChange(e.target.value)} placeholder="GJ01AB1234" required />
             </div>
             <div>
               <label className="label">Seating capacity</label>
@@ -139,7 +292,7 @@ export default function VehiclesPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-[#a6d6fb] to-[#5aadee] shadow-btn ring-1 ring-black/10">
-                      <Car className="h-6 w-6 text-white" />
+                      {v.vehicle_type === "bike" ? <Bike className="h-6 w-6 text-white" /> : <Car className="h-6 w-6 text-white" />}
                     </div>
                     <div>
                       <div className="font-display text-lg font-bold uppercase leading-tight text-slate-900">{v.model}</div>
@@ -157,6 +310,16 @@ export default function VehiclesPage() {
                       inactive
                     </span>
                   )}
+                  {v.plate_verified && (
+                    <InfoPill className="bg-gradient-to-b from-[#2dd4bf] to-[#0d9488] text-white ring-black/10">
+                      <ShieldCheck className="h-3 w-3" />
+                      verified
+                    </InfoPill>
+                  )}
+                  <InfoPill className="bg-gradient-to-b from-[#fcd775] to-[#efab24] text-[#5c3702] ring-black/10">
+                    {v.vehicle_type === "bike" ? <Bike className="h-3 w-3" /> : <Car className="h-3 w-3" />}
+                    {v.vehicle_type}
+                  </InfoPill>
                   <InfoPill className="bg-gradient-to-b from-[#a6d6fb] to-[#5aadee] text-white ring-black/10">
                     <Fuel className="h-3 w-3" />
                     {v.fuel_type.toUpperCase()}

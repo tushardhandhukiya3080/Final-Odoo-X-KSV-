@@ -63,7 +63,10 @@ export default function MapView({
 }: MapViewProps) {
   const routeLatLng: [number, number][] = route?.map(([lng, lat]) => [lat, lng]) ?? [];
   const markerPos: [number, number][] = points.map((p) => [p.lat, p.lng]);
-  const allPos = [...markerPos, ...routeLatLng, ...(live ? [[live.lat, live.lng] as [number, number]] : [])];
+  // Guard against a malformed live position (e.g. an event missing lat/lng) —
+  // Leaflet throws "Invalid LatLng" and takes the whole page down otherwise.
+  const validLive = live && Number.isFinite(live.lat) && Number.isFinite(live.lng) ? live : null;
+  const allPos = [...markerPos, ...routeLatLng, ...(validLive ? [[validLive.lat, validLive.lng] as [number, number]] : [])];
   const center: [number, number] = allPos[0] ?? [20.5937, 78.9629]; // India fallback
 
   return (
@@ -79,7 +82,7 @@ export default function MapView({
         {routeLatLng.length > 0 && (
           <Polyline positions={routeLatLng} pathOptions={{ color: "#4f7cff", weight: 5, opacity: 0.85 }} />
         )}
-        {live && <Marker position={[live.lat, live.lng]} icon={CAR} />}
+        {validLive && <Marker position={[validLive.lat, validLive.lng]} icon={CAR} />}
         <FitBounds positions={allPos.length ? allPos : [center]} />
       </MapContainer>
     </div>

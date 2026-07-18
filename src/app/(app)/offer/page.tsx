@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Car, Clock, Users, IndianRupee, Route as RouteIcon,
-  ArrowRight, CheckCircle2, Repeat, Sparkles,
+  ArrowRight, CheckCircle2, Repeat, Sparkles, Navigation, MapPin, Trash2, Plus,
 } from "lucide-react";
 import { api } from "@/lib/client";
 import DynamicMap from "@/components/map/DynamicMap";
@@ -23,6 +23,8 @@ export default function OfferRidePage() {
   const [seats, setSeats] = useState(3);
   const [fare, setFare] = useState(50);
   const [recurring, setRecurring] = useState(false);
+  const [trackMode, setTrackMode] = useState<"gps" | "manual">("gps");
+  const [stops, setStops] = useState<(PlaceValue | null)[]>([]);
 
   const [route, setRoute] = useState<RouteResult | null>(null);
   const [step, setStep] = useState<"form" | "confirm">("form");
@@ -41,6 +43,8 @@ export default function OfferRidePage() {
       .catch(() => {});
   }, []);
 
+  const cleanStops = stops.filter((s): s is PlaceValue => !!s);
+
   // Fare optimizer: split the trip's estimated fuel cost across the seats.
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
   const suggestedFare =
@@ -57,9 +61,13 @@ export default function OfferRidePage() {
     }
     setBusy(true);
     try {
+      const via =
+        trackMode === "manual"
+          ? cleanStops.map((s) => ({ lat: s.lat, lng: s.lng }))
+          : [];
       const r = await api<RouteResult>("/api/route", {
         method: "POST",
-        body: { from: { lat: origin.lat, lng: origin.lng }, to: { lat: dest.lat, lng: dest.lng } },
+        body: { from: { lat: origin.lat, lng: origin.lng }, to: { lat: dest.lat, lng: dest.lng }, via },
       });
       setRoute(r);
       setStep("confirm");
@@ -80,6 +88,8 @@ export default function OfferRidePage() {
           vehicleId,
           origin,
           dest,
+          stops: trackMode === "manual" ? cleanStops : [],
+          trackMode,
           departAt,
           seats,
           farePerSeat: fare,
@@ -157,9 +167,62 @@ export default function OfferRidePage() {
           {/* Route */}
           <div className="space-y-3">
             <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Route</div>
-            <div className="bento space-y-4">
+            <div className="bento space-y-4 overflow-visible">
               <LocationInput label="Pickup / origin" value={origin} onChange={setOrigin} saved={saved} />
               <LocationInput label="Destination" value={dest} onChange={setDest} saved={saved} />
+            </div>
+          </div>
+
+          {/* Tracking mode */}
+          <div className="space-y-3">
+            <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400">Live tracking</div>
+            <div className="bento space-y-4 overflow-visible">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setTrackMode("gps")}
+                  className={`rounded-xl p-3.5 text-left ring-1 ring-black/10 transition ${trackMode === "gps" ? "bg-gradient-to-b from-[#a6d6fb] to-[#5aadee] text-white shadow-btn" : "bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-md"}`}
+                >
+                  <div className="flex items-center gap-2 font-display text-sm font-bold uppercase"><Navigation className="h-4 w-4" /> GPS · Auto</div>
+                  <div className={`mt-0.5 text-xs font-semibold ${trackMode === "gps" ? "text-white/80" : "text-slate-400"}`}>Your phone shares live location while driving.</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrackMode("manual")}
+                  className={`rounded-xl p-3.5 text-left ring-1 ring-black/10 transition ${trackMode === "manual" ? "bg-gradient-to-b from-[#fcd775] to-[#efab24] text-[#5c3702] shadow-btn" : "bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-md"}`}
+                >
+                  <div className="flex items-center gap-2 font-display text-sm font-bold uppercase"><MapPin className="h-4 w-4" /> Manual · Stops</div>
+                  <div className={`mt-0.5 text-xs font-semibold ${trackMode === "manual" ? "text-[#5c3702]/80" : "text-slate-400"}`}>Add stops; tap each as you reach it.</div>
+                </button>
+              </div>
+
+              {trackMode === "manual" && (
+                <div className="space-y-3 border-t border-black/5 pt-4">
+                  <div className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Stops along the way (in order)</div>
+                  {stops.length === 0 && (
+                    <p className="text-sm font-medium text-slate-400">No stops yet — e.g. Gandhinagar → Sector 1 → Adalaj → Chandkheda → Ahmedabad.</p>
+                  )}
+                  {stops.map((s, i) => (
+                    <div key={i} className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <LocationInput
+                          label={`Stop ${i + 1}`}
+                          value={s}
+                          onChange={(v) => setStops((prev) => prev.map((x, j) => (j === i ? v : x)))}
+                          saved={saved}
+                          placeholder="Search a stop…"
+                        />
+                      </div>
+                      <button type="button" onClick={() => setStops((prev) => prev.filter((_, j) => j !== i))} className="mb-1 rounded-xl bg-white p-2.5 text-rose-600 shadow-btn ring-1 ring-black/10" aria-label="Remove stop">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setStops((prev) => [...prev, null])} className="lp-btn bg-white text-slate-800">
+                    <Plus className="h-4 w-4" /> Add stop
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -217,7 +280,11 @@ export default function OfferRidePage() {
             <div className="bento">
               <div className="divide-y divide-black/5">
                 <SummaryRow label="From" value={origin!.label.split(",")[0]} />
+                {trackMode === "manual" && cleanStops.length > 0 && (
+                  <SummaryRow label="Stops" value={cleanStops.map((s) => s.label.split(",")[0]).join(" → ")} />
+                )}
                 <SummaryRow label="To" value={dest!.label.split(",")[0]} />
+                <SummaryRow label="Tracking" value={trackMode === "manual" ? "Manual · stop-by-stop" : "GPS · auto"} />
                 <SummaryRow label="Distance" value={`${route!.distanceKm} km`} />
                 <SummaryRow label="Duration" value={`~${Math.round(route!.durationMin)} min`} />
                 <SummaryRow label="Departs" value={new Date(departAt).toLocaleString()} />

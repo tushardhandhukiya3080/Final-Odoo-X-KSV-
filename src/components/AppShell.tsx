@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Search, PlusCircle, Route, Wallet, Car, BarChart3,
-  Settings, LogOut, Building2, MapPin, Clock, Gamepad2, ShieldCheck, Menu,
+  Settings, LogOut, Building2, MapPin, Clock, Gamepad2, ShieldCheck, Menu, Radar,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CurrentUser } from "@/lib/types";
@@ -22,6 +22,7 @@ const PRIMARY: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { href: "/find", label: "Find a Ride", Icon: Search },
   { href: "/offer", label: "Offer a Ride", Icon: PlusCircle },
+  { href: "/live", label: "Live Map", Icon: Radar },
   { href: "/trips", label: "My Trips", Icon: Route },
   { href: "/simulate", label: "Simulate", Icon: Gamepad2 },
 ];

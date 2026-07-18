@@ -12,6 +12,7 @@ export type BookingStatus = "booked" | "cancelled" | "completed";
 export type PaymentStatus = "pending" | "completed";
 export type PaymentMethod = "cash" | "card" | "upi" | "wallet";
 export type FuelType = "petrol" | "diesel" | "cng" | "ev";
+export type VehicleType = "bike" | "car";
 
 export interface Organization {
   id: string;
@@ -38,10 +39,12 @@ export interface Vehicle {
   user_id: string;
   model: string;
   registration_number: string;
+  vehicle_type: VehicleType;
   seating_capacity: number;
   fuel_type: FuelType;
   mileage_kmpl: number;
   is_active: boolean;
+  plate_verified: boolean;
 }
 
 export interface LatLng {

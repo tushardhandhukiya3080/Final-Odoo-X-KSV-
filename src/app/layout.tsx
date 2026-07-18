@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "@/styles/tailwind.css";
 import "./globals.css";
 import "@/styles/app.css";
+import SplashScreen from "@/components/SplashScreen";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,7 +30,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body>{children}</body>
+      <body>
+        <SplashScreen />
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,7 +1,7 @@
 import { route, ok, body, ApiError } from "@/lib/api";
 import { query } from "@/lib/db";
 import { offerRideSchema } from "@/lib/validation";
-import { routeBetween } from "@/lib/geo";
+import { routeVia } from "@/lib/geo";
 import { publish } from "@/lib/events";
 
 // Publish (offer) a ride. Route geometry/distance/ETA are computed server-side.
@@ -17,7 +17,9 @@ export const POST = route(async (req, { user }) => {
     throw new ApiError(`Seats can't exceed vehicle capacity (${veh.rows[0].seating_capacity})`, 400);
   }
 
-  const r = await routeBetween(d.origin, d.dest);
+  // Route through any intermediate stops: [origin, ...stops, dest].
+  const stops = d.trackMode === "manual" ? d.stops : [];
+  const r = await routeVia([d.origin, ...stops, d.dest]);
 
   const { rows } = await query<{ id: string }>(
     `INSERT INTO rides
@@ -26,8 +28,8 @@ export const POST = route(async (req, { user }) => {
         dest_label, dest_lat, dest_lng,
         route_geometry, distance_km, duration_min,
         depart_at, seats_total, seats_available, fare_per_seat,
-        is_recurring, recur_days)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14,$15,$16,$17)
+        is_recurring, recur_days, stops, track_mode)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$14,$15,$16,$17,$18,$19)
      RETURNING id`,
     [
       user.id, d.vehicleId, user.organizationId,
@@ -36,6 +38,7 @@ export const POST = route(async (req, { user }) => {
       JSON.stringify(r.coordinates), r.distanceKm, r.durationMin,
       d.departAt, d.seats, d.farePerSeat,
       d.isRecurring, d.recurDays ?? null,
+      JSON.stringify(stops), d.trackMode,
     ],
   );
 

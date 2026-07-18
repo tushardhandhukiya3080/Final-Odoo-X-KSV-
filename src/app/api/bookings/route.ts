@@ -29,7 +29,11 @@ export const POST = route(async (req, { user }) => {
     if (!ride) throw new ApiError("Ride not found", 404);
     if (ride.organization_id !== user.organizationId) throw new ApiError("Forbidden", 403);
     if (ride.driver_id === user.id) throw new ApiError("You can't book your own ride", 400);
-    if (ride.status !== "published") throw new ApiError("This ride is no longer open for booking", 400);
+    // Allow boarding a ride that's published or already en-route (mid-route pickup),
+    // but not one that's completed or cancelled.
+    if (!["published", "started", "in_progress"].includes(ride.status)) {
+      throw new ApiError("This ride is no longer open for booking", 400);
+    }
     if (ride.seats_available < b.seats) throw new ApiError("Not enough seats available", 400);
 
     const fare = b.seats * Number(ride.fare_per_seat);
