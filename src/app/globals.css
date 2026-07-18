@@ -1,6 +1,6 @@
 :root {
   --bg: #08090f;
-  --bg-2: #726b48;
+  --bg-2: #0e0f17;
   --card: #14151f;
   --card-2: #181a26;
   --border: #262838;
@@ -516,20 +516,38 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  max-width: 860px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 .sim-title {
   margin: 0 0 4px;
 }
-.sim-inputs {
+/* Controls panel on the left, big map on the right; stacks on narrow screens. */
+.sim-grid {
   display: grid;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 920px) {
+  .sim-grid {
+    grid-template-columns: 400px 1fr;
+    align-items: start;
+  }
+}
+.sim-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   margin: 16px 0;
 }
-@media (min-width: 720px) {
-  .sim-inputs {
-    grid-template-columns: 1fr 1fr 1fr;
+.sim-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+@media (min-width: 920px) {
+  .sim-map .map.tall {
+    height: 560px;
   }
 }
 .sim-status {

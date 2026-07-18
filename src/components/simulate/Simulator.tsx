@@ -261,39 +261,43 @@ export default function Simulator() {
 
   return (
     <div className="sim">
-      <div className="card">
-        <h2 className="sim-title">🎮 Ride simulation</h2>
-        <p className="muted sm">
-          Watch the driver drive from their start, stop to pick you up, then continue to the
-          destination — and see best / average / worst-case arrival times.
-        </p>
-        <div className="sim-inputs">
-          <LocationInput label="🚗 Driver start" value={driver} onChange={setDriver} placeholder="Where the driver begins…" />
-          <LocationInput label="🧍 Your pickup" value={pickup} onChange={setPickup} placeholder="Where you get picked up…" />
-          <LocationInput label="🏁 Destination" value={dest} onChange={setDest} placeholder="Where you're both going…" />
+      <div className="sim-grid">
+        <div className="card sim-side">
+          <h2 className="sim-title">🎮 Ride simulation</h2>
+          <p className="muted sm">
+            Watch the driver drive from their start, stop to pick you up, then continue to the
+            destination — and see best / average / worst-case arrival times.
+          </p>
+          <div className="sim-inputs">
+            <LocationInput label="🚗 Driver start" value={driver} onChange={setDriver} placeholder="Where the driver begins…" />
+            <LocationInput label="🧍 Your pickup" value={pickup} onChange={setPickup} placeholder="Where you get picked up…" />
+            <LocationInput label="🏁 Destination" value={dest} onChange={setDest} placeholder="Where you're both going…" />
+          </div>
+          {error && <div className="error">{error}</div>}
+          <button className="btn" onClick={run} disabled={loading}>
+            {loading ? "Building route…" : sim ? "Re-run simulation" : "Run simulation"}
+          </button>
         </div>
-        {error && <div className="error">{error}</div>}
-        <button className="btn" onClick={run} disabled={loading}>
-          {loading ? "Building route…" : sim ? "Re-run simulation" : "Run simulation"}
-        </button>
-      </div>
 
-      {sim && (
-        <>
-          <div className="card">
-            <div className="sim-status">
-              <span>{status}</span>
-              <span className="muted sm">{Math.round(progress * 100)}%</span>
-            </div>
-            <div className="sim-bar">
-              <div className="sim-bar-fill" style={{ width: `${progress * 100}%` }} />
-              {sim.total > 0 && (
-                <div className="sim-bar-pickup" style={{ left: `${(sim.pickupDist / sim.total) * 100}%` }} title="Your pickup" />
-              )}
-            </div>
+        <div className="card sim-map">
+          {sim && (
+            <>
+              <div className="sim-status">
+                <span>{status}</span>
+                <span className="muted sm">{Math.round(progress * 100)}%</span>
+              </div>
+              <div className="sim-bar">
+                <div className="sim-bar-fill" style={{ width: `${progress * 100}%` }} />
+                {sim.total > 0 && (
+                  <div className="sim-bar-pickup" style={{ left: `${(sim.pickupDist / sim.total) * 100}%` }} title="Your pickup" />
+                )}
+              </div>
+            </>
+          )}
 
-            <DynamicMap points={points} route={sim.routeLngLat} live={car} tall />
+          <DynamicMap points={points} route={sim?.routeLngLat} live={car} tall />
 
+          {sim && (
             <div className="sim-controls">
               {playing ? (
                 <button className="btn-ghost" onClick={pause}>⏸ Pause</button>
@@ -313,33 +317,33 @@ export default function Simulator() {
                 />
               </label>
             </div>
-          </div>
-
-          {etas && (
-            <div className="eta-grid">
-              <div className="eta-card best">
-                <span className="eta-label">Best case</span>
-                <span className="eta-time">{fmt(etas.best)}</span>
-                <span className="muted sm">light traffic</span>
-              </div>
-              <div className="eta-card avg">
-                <span className="eta-label">Average</span>
-                <span className="eta-time">{fmt(etas.avg)}</span>
-                <span className="muted sm">typical</span>
-              </div>
-              <div className="eta-card worst">
-                <span className="eta-label">Worst case</span>
-                <span className="eta-time">{fmt(etas.worst)}</span>
-                <span className="muted sm">heavy traffic</span>
-              </div>
-              <div className="eta-card">
-                <span className="eta-label">Distance</span>
-                <span className="eta-time">{sim.distanceKm} km</span>
-                <span className="muted sm">incl. {PICKUP_WAIT_MIN} min pickup</span>
-              </div>
-            </div>
           )}
-        </>
+        </div>
+      </div>
+
+      {sim && etas && (
+        <div className="eta-grid">
+          <div className="eta-card best">
+            <span className="eta-label">Best case</span>
+            <span className="eta-time">{fmt(etas.best)}</span>
+            <span className="muted sm">light traffic</span>
+          </div>
+          <div className="eta-card avg">
+            <span className="eta-label">Average</span>
+            <span className="eta-time">{fmt(etas.avg)}</span>
+            <span className="muted sm">typical</span>
+          </div>
+          <div className="eta-card worst">
+            <span className="eta-label">Worst case</span>
+            <span className="eta-time">{fmt(etas.worst)}</span>
+            <span className="muted sm">heavy traffic</span>
+          </div>
+          <div className="eta-card">
+            <span className="eta-label">Distance</span>
+            <span className="eta-time">{sim.distanceKm} km</span>
+            <span className="muted sm">incl. {PICKUP_WAIT_MIN} min pickup</span>
+          </div>
+        </div>
       )}
     </div>
   );

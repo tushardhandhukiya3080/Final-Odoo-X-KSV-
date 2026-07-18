@@ -13,7 +13,9 @@ export const POST = route(async (req, { user }) => {
     amount: order.amount,
     currency: order.currency,
     mock: order.mock,
-    keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "",
+    // Key ID is public; fall back to RAZORPAY_KEY_ID so the two server keys
+    // alone are enough to open the checkout popup.
+    keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "",
   });
 });
 

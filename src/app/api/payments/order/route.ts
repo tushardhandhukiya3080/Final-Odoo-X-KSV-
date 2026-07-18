@@ -13,6 +13,9 @@ export const POST = route(async (req, { user }) => {
     amount: order.amount,
     currency: order.currency,
     mock: order.mock,
-    keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? "",
+    // The Razorpay Key ID is public (it goes in the browser checkout). Fall back
+    // to RAZORPAY_KEY_ID so setting just the two server keys is enough — without
+    // this, a real order with an empty keyId silently skips the popup.
+    keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "",
   });
 });
