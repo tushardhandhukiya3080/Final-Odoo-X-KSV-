@@ -102,6 +102,15 @@ function ensureStarted(): Promise<void> {
   return wa.starting;
 }
 
+// Right after a (re)start the socket is created but not yet "open". Give the
+// reconnect from .wa-auth/ a moment to complete before we decide it's offline.
+async function waitForConnection(timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!wa.connected && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
 /** For the QR login screen. */
 export async function getWaStatus(): Promise<{ connected: boolean; qr: string | null }> {
   await ensureStarted();
@@ -116,6 +125,7 @@ export async function sendWhatsApp(
   mediaUrl?: string,
 ): Promise<WhatsAppResult> {
   await ensureStarted();
+  if (!wa.connected) await waitForConnection(10_000);
   if (!wa.connected || !wa.sock) {
     return {
       ok: false,

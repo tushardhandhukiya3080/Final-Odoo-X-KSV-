@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { hashPassword, setSession } from "@/lib/auth";
-import { signupSchema } from "@/lib/validation";
+import { signupVerifySchema } from "@/lib/validation";
 import { rateLimit } from "@/lib/ratelimit";
 import { isSameOrigin } from "@/lib/origin";
 import { publish } from "@/lib/events";
+import { verifyChallenge } from "@/lib/otp";
 
 // Signup also onboards the organization: the first person to name a company
 // creates it and becomes its admin; everyone after joins as an employee.
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const parsed = signupSchema.safeParse(raw);
+  const parsed = signupVerifySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid input" },
@@ -36,7 +37,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const { name, email, password, phone, companyName } = parsed.data;
+  const { name, email, password, companyName, otp } = parsed.data;
+
+  // Verify the WhatsApp code before creating anything. Use the phone the code
+  // was actually sent to (not the resubmitted one) so the stored number is the
+  // verified one.
+  const check = verifyChallenge(email, otp);
+  if (!check.ok) {
+    return NextResponse.json({ error: check.error }, { status: 400 });
+  }
+  const phone = check.phone;
   const passwordHash = await hashPassword(password);
 
   const client = await pool.connect();

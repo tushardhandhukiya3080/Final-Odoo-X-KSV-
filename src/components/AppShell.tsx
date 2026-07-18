@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { CurrentUser } from "@/lib/types";
+import { useAppEvents } from "@/components/EventsProvider";
 
 interface NavItem {
   href: string;
@@ -50,27 +51,17 @@ export default function AppShell({
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setOpen(false), [pathname]);
 
-  // Global ride notifications via the existing SSE bus.
-  useEffect(() => {
-    const es = new EventSource("/api/events");
-    es.onmessage = (m) => {
-      try {
-        const ev = JSON.parse(m.data) as { type: string; data?: { message?: string } };
-        const msg = NOTIF[ev.type];
-        if (msg) {
-          const kind = ev.type === "sos" || ev.type === "ride.cancelled" ? "err" : "ok";
-          setToast({ text: ev.data?.message ?? msg, kind });
-          setTimeout(() => setToast(null), 4500);
-          if (ev.type === "payment.completed" || ev.type === "wallet.recharged") {
-            refreshWallet();
-          }
-        }
-      } catch {
-        /* heartbeat */
-      }
-    };
-    return () => es.close();
-  }, []);
+  // Global ride notifications via the shared SSE stream.
+  useAppEvents((ev) => {
+    const msg = NOTIF[ev.type];
+    if (!msg) return;
+    const kind = ev.type === "sos" || ev.type === "ride.cancelled" ? "err" : "ok";
+    setToast({ text: (ev.data?.message as string) ?? msg, kind });
+    setTimeout(() => setToast(null), 4500);
+    if (ev.type === "payment.completed" || ev.type === "wallet.recharged") {
+      refreshWallet();
+    }
+  });
 
   async function refreshWallet() {
     try {

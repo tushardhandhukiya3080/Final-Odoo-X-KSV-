@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/client";
+import { useAppEvents } from "@/components/EventsProvider";
 import DynamicMap from "@/components/map/DynamicMap";
 import ChatPanel from "./ChatPanel";
 import PaymentPanel from "./PaymentPanel";
@@ -38,34 +39,41 @@ export default function TripClient({ id, currentUserId }: { id: string; currentU
     api<ChatMessage[]>(`/api/rides/${id}/messages`).then(setMessages).catch(() => {});
   }, [id, reload]);
 
-  // Single SSE stream for this trip: location, chat, and lifecycle changes.
+  // Safety net: if a live event was ever missed (reconnect gap, was on another
+  // tab), re-fetch whenever this tab regains focus — so switching between the
+  // driver and passenger windows always shows the latest status (e.g. the
+  // "Payment due" panel right after the driver completes the trip).
   useEffect(() => {
-    const es = new EventSource("/api/events");
-    es.onmessage = (m) => {
-      try {
-        const ev = JSON.parse(m.data) as { type: string; data?: Record<string, unknown> };
-        if (ev.data?.rideId !== id) return;
-        if (ev.type === "trip.location") {
-          setLive({ lat: ev.data.lat as number, lng: ev.data.lng as number });
-        } else if (ev.type === "chat.message") {
-          setMessages((prev) => [
-            ...prev,
-            {
-              senderId: ev.data!.senderId as string,
-              senderName: ev.data!.senderName as string,
-              body: ev.data!.body as string,
-              at: ev.data!.at as string,
-            },
-          ]);
-        } else if (["ride.booked", "trip.started", "trip.completed", "ride.cancelled"].includes(ev.type)) {
-          reload();
-        }
-      } catch {
-        /* heartbeat */
-      }
+    const refetch = () => {
+      if (!document.hidden) reload();
     };
-    return () => es.close();
-  }, [id, reload]);
+    window.addEventListener("focus", refetch);
+    document.addEventListener("visibilitychange", refetch);
+    return () => {
+      window.removeEventListener("focus", refetch);
+      document.removeEventListener("visibilitychange", refetch);
+    };
+  }, [reload]);
+
+  // Live updates for this trip (location, chat, lifecycle) via the shared stream.
+  useAppEvents((ev) => {
+    if (ev.data?.rideId !== id) return;
+    if (ev.type === "trip.location") {
+      setLive({ lat: ev.data.lat as number, lng: ev.data.lng as number });
+    } else if (ev.type === "chat.message") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          senderId: ev.data!.senderId as string,
+          senderName: ev.data!.senderName as string,
+          body: ev.data!.body as string,
+          at: ev.data!.at as string,
+        },
+      ]);
+    } else if (["ride.booked", "trip.started", "trip.completed", "ride.cancelled"].includes(ev.type)) {
+      reload();
+    }
+  });
 
   // Driver shares GPS while the trip is live (throttled to ~4s).
   useEffect(() => {

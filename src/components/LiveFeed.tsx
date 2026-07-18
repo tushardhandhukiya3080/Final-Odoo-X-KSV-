@@ -1,27 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type Ev = { type: string; data?: unknown; at: string };
+import { useState } from "react";
+import { useAppEvents, useEventsConnected, type AppEvent } from "@/components/EventsProvider";
 
 export default function LiveFeed() {
-  const [events, setEvents] = useState<Ev[]>([]);
-  const [connected, setConnected] = useState(false);
+  const [events, setEvents] = useState<AppEvent[]>([]);
+  const connected = useEventsConnected();
 
-  useEffect(() => {
-    const es = new EventSource("/api/events");
-    es.onopen = () => setConnected(true);
-    es.onmessage = (m) => {
-      try {
-        const ev = JSON.parse(m.data) as Ev;
-        setEvents((prev) => [ev, ...prev].slice(0, 15));
-      } catch {
-        /* heartbeat / non-JSON */
-      }
-    };
-    es.onerror = () => setConnected(false);
-    return () => es.close();
-  }, []);
+  useAppEvents((ev) => setEvents((prev) => [ev, ...prev].slice(0, 15)));
 
   async function sendTest() {
     await fetch("/api/events/publish", {
@@ -46,7 +32,7 @@ export default function LiveFeed() {
         {events.map((e, i) => (
           <li key={i}>
             <code>{e.type}</code>
-            <span className="ts">{new Date(e.at).toLocaleTimeString()}</span>
+            <span className="ts">{e.at ? new Date(e.at).toLocaleTimeString() : ""}</span>
           </li>
         ))}
       </ul>

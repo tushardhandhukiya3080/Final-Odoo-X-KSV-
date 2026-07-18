@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import ProfilePhone from "@/components/ProfilePhone";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,21 @@ export default async function SettingsPage() {
           <div className="row"><span className="k">Role</span><span><span className={`pill ${user.role}`}>{user.role}</span></span></div>
         </div>
       </div>
+
+      <ProfilePhone initialPhone={user.phone} />
+
+      <a className="surface" href="/whatsapp/login" target="_blank" rel="noreferrer"
+         style={{ display: "block", marginBottom: 20, textDecoration: "none" }}>
+        <div className="row-between">
+          <div>
+            <strong>💬 Connect WhatsApp (for invoices)</strong>
+            <div className="muted sm" style={{ marginTop: 4 }}>
+              Scan the QR once to link the number that sends receipts. Opens in a new tab →
+            </div>
+          </div>
+          <span className="pill">setup</span>
+        </div>
+      </a>
 
       <div className="nav-cards">
         {LINKS.map((l) => (

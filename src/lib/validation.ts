@@ -5,13 +5,28 @@ export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters").max(200),
-  phone: z.string().trim().max(20).optional().or(z.literal("")),
+  // Required now: a WhatsApp code is sent here to verify the number at signup.
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+?[\d\s-]{8,20}$/, "Enter a valid WhatsApp number"),
   companyName: z.string().trim().min(1, "Company name is required").max(120),
+});
+
+// Final signup step: same fields plus the 6-digit code from WhatsApp.
+export const signupVerifySchema = signupSchema.extend({
+  otp: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
+});
+
+export const profileSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  // WhatsApp number in E.164 (e.g. +919000000001) — used for payment invoices.
+  phone: z.string().trim().max(20).optional().or(z.literal("")),
 });
 
 // ── Geo primitives ───────────────────────────────────────────────────────────

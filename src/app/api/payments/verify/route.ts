@@ -1,6 +1,7 @@
 import { route, ok, body, ApiError } from "@/lib/api";
 import { paymentVerifySchema } from "@/lib/validation";
 import { loadPayable, markPaid } from "@/lib/payments";
+import { sendPaymentInvoices } from "@/lib/ride-invoice";
 import { verifySignature } from "@/lib/razorpay";
 import { publish } from "@/lib/events";
 
@@ -18,5 +19,6 @@ export const POST = route(async (req, { user }) => {
     paymentId: d.razorpayPaymentId,
   });
   publish("payment.completed", { bookingId: d.bookingId, message: "✅ Payment received" });
+  void sendPaymentInvoices(d.bookingId, d.method).catch(() => {});
   return ok({ paid: true });
 });
