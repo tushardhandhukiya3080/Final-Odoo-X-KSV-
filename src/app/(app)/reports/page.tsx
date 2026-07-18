@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { loadUserEco } from "@/lib/eco";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export default async function ReportsPage() {
     "SELECT count(*) n FROM bookings WHERE passenger_id=$1 AND status='completed'",
     [user.id],
   );
+  const eco = await loadUserEco(user.id, fuelPrice);
 
   const rides = driver.rows;
   const totalDistance = rides.reduce((s, r) => s + Number(r.distance_km), 0);
@@ -89,6 +91,23 @@ export default async function ReportsPage() {
         <Stat icon="💰" label="Fuel cost" value={`₹${fuelCost.toFixed(0)}`} />
         <Stat icon="🛣️" label="Cost per km" value={`₹${costPerKm.toFixed(2)}`} sub="org configured" />
         <Stat icon="🧮" label="Est. travel cost" value={`₹${travelCost.toFixed(0)}`} sub={`${totalDistance.toFixed(0)} km × ₹${costPerKm}`} />
+      </div>
+
+      <div className="section-title">🌱 Carbon footprint &amp; savings</div>
+      <div className="eco-hero" style={{ marginBottom: 4 }}>
+        <div className="row-between" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 20 }}>
+          <div>
+            <div className="muted sm">Sustainability score</div>
+            <div className="score">{eco.greenScore}<span style={{ fontSize: "1rem", color: "var(--muted)" }}> / 100</span></div>
+            <div className="muted sm">from {eco.sharedTrips} shared trip{eco.sharedTrips === 1 ? "" : "s"}</div>
+          </div>
+          <div className="grid cols-4" style={{ flex: 1, minWidth: 280 }}>
+            <div className="stat eco-tile"><div className="label">💨 CO₂ saved</div><div className="value">{eco.co2Kg} kg</div></div>
+            <div className="stat eco-tile"><div className="label">⛽ Fuel saved</div><div className="value">{eco.fuelSavedL} L</div></div>
+            <div className="stat eco-tile"><div className="label">💰 Money saved</div><div className="value">₹{eco.moneySaved}</div></div>
+            <div className="stat eco-tile"><div className="label">🌳 Trees / yr</div><div className="value">{eco.trees}</div></div>
+          </div>
+        </div>
       </div>
 
       <div className="section-title">Monthly distance</div>

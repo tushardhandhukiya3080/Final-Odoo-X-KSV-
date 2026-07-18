@@ -79,6 +79,8 @@ export const POST = route(async (req, { user }) => {
       vehicle: `${r.vehicle_model} · ${r.registration_number}`,
       originDetourKm: Number(originDist.toFixed(1)),
       destDetourKm: Number(destDist.toFixed(1)),
+      // Compatibility score: closer pickup/drop → higher match (proximity-based).
+      matchScore: Math.round(100 - ((originDist + destDist) / (2 * RADIUS_KM)) * 55),
     }));
 
   return ok(matched);

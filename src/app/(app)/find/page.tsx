@@ -21,6 +21,7 @@ interface Match {
   vehicle: string;
   originDetourKm: number;
   destDetourKm: number;
+  matchScore: number;
 }
 
 export default function FindRidePage() {
@@ -148,6 +149,7 @@ export default function FindRidePage() {
                       <div className="muted sm">{m.vehicle}</div>
                     </div>
                     <div style={{ flex: 1 }} />
+                    <span className={`match ${m.matchScore >= 80 ? "" : "mid"}`}>✨ {m.matchScore}% match</span>
                     <span className="fare">₹{m.farePerSeat}</span>
                   </div>
                   <div className="ride-route">

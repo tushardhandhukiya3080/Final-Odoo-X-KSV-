@@ -45,7 +45,7 @@ export default function AppShell({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [wallet, setWallet] = useState(user.walletBalance);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; kind: "ok" | "err" } | null>(null);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setOpen(false), [pathname]);
@@ -58,8 +58,9 @@ export default function AppShell({
         const ev = JSON.parse(m.data) as { type: string; data?: { message?: string } };
         const msg = NOTIF[ev.type];
         if (msg) {
-          setToast(ev.data?.message ?? msg);
-          setTimeout(() => setToast(null), 4000);
+          const kind = ev.type === "sos" || ev.type === "ride.cancelled" ? "err" : "ok";
+          setToast({ text: ev.data?.message ?? msg, kind });
+          setTimeout(() => setToast(null), 4500);
           if (ev.type === "payment.completed" || ev.type === "wallet.recharged") {
             refreshWallet();
           }
@@ -140,7 +141,7 @@ export default function AppShell({
         <main className="content">{children}</main>
       </div>
 
-      {toast && <div className="toast ok">{toast}</div>}
+      {toast && <div className={`toast ${toast.kind}`}>{toast.text}</div>}
     </div>
   );
 }
@@ -152,4 +153,5 @@ const NOTIF: Record<string, string> = {
   "payment.completed": "✅ Payment received",
   "wallet.recharged": "💰 Wallet recharged",
   "ride.cancelled": "⚠️ A ride was cancelled",
+  sos: "🆘 SOS alert — a rider needs help",
 };

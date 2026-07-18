@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { query } from "@/lib/db";
+import { loadUserEco } from "@/lib/eco";
 import LiveFeed from "@/components/LiveFeed";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +55,12 @@ export default async function DashboardPage() {
 
   const next = nextTrip.rows[0];
 
+  const orgRow = await query<{ fuel_price_per_litre: string }>(
+    "SELECT fuel_price_per_litre FROM organizations WHERE id=$1",
+    [user.organizationId],
+  );
+  const eco = await loadUserEco(uid, Number(orgRow.rows[0]?.fuel_price_per_litre ?? 100));
+
   return (
     <>
       <div className="page-head">
@@ -99,6 +106,26 @@ export default async function DashboardPage() {
           <div className="sub">
             <Link href="/vehicles">Manage →</Link>
           </div>
+        </div>
+      </div>
+
+      <div className="section-title">🌱 Your green impact</div>
+      <div className="eco-hero">
+        <div className="row-between" style={{ alignItems: "flex-start" }}>
+          <div>
+            <div className="muted sm">Green score</div>
+            <div className="score">{eco.greenScore}</div>
+            <div className="muted sm">
+              {eco.sharedTrips} shared trip{eco.sharedTrips === 1 ? "" : "s"} · {eco.savedKm} car-km avoided
+            </div>
+          </div>
+          <span style={{ fontSize: "2.6rem" }}>🌍</span>
+        </div>
+        <div className="grid cols-4" style={{ marginTop: 18 }}>
+          <div className="stat eco-tile"><div className="label">💨 CO₂ saved</div><div className="value">{eco.co2Kg} kg</div></div>
+          <div className="stat eco-tile"><div className="label">⛽ Fuel saved</div><div className="value">{eco.fuelSavedL} L</div></div>
+          <div className="stat eco-tile"><div className="label">💰 Money saved</div><div className="value">₹{eco.moneySaved}</div></div>
+          <div className="stat eco-tile"><div className="label">🌳 Trees / yr</div><div className="value">{eco.trees}</div></div>
         </div>
       </div>
 

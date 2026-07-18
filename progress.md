@@ -159,9 +159,16 @@ and bonus items.
 - [x] Empty/loading/error states, mobile-responsive shell, README refresh
 - [ ] Deeper a11y pass, unit tests per module, security re-review, real Razorpay sandbox run
 
-### Bonus (stretch)
+### Bonus & innovations
 - [x] Real-time notifications (SSE toasts), ride cancellation
-- [ ] Intelligent matching (detour-aware), route optimization, enhanced analytics, recurring-ride materialization, push notifications
+- [x] **Premium UI redesign** — Inter type, gradient/glass design system, depth, motion (all screens)
+- [x] **Carbon footprint & savings** — CO₂/fuel/money saved, trees, green score (dashboard + reports) · `lib/eco.ts`
+- [x] **Ride match score** — compatibility % on search results
+- [x] **Smart fare optimizer** — suggested fair fare per seat when offering
+- [x] **Emergency SOS** — one-tap alert with live location to trip participants
+- [ ] From `Enterprise_Carpooling_Innovations.md`, still open: AI demand prediction, smart pickup points,
+  cancellation prediction, weather-aware routing, driver trust score, parcel-delivery module,
+  gamification/leaderboards, voice assistant, EV charging suggestions, IoT vehicle health.
 
 ---
 
@@ -189,3 +196,6 @@ npm run seed        # optional demo data
 - **2026-07-18** — Roadmap authored; full platform built on the existing auth
   starter. Schema, org/role auth, maps, all 12 modules, and payments implemented.
   Build green, DB migrated + seeded, golden-path smoke test 16/16. Phases 0–7 done.
+- **2026-07-18** — Premium UI redesign (Inter, gradient/glass design system, motion)
+  + innovations: carbon-savings dashboard, ride match score, fare optimizer, SOS.
+  Build green; innovation checks 6/6; golden path still 16/16.

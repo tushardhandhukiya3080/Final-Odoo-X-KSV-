@@ -24,6 +24,7 @@ export default function OfferRidePage() {
   const [step, setStep] = useState<"form" | "confirm">("form");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fuelPrice, setFuelPrice] = useState(100);
 
   useEffect(() => {
     api<Vehicle[]>("/api/vehicles").then((v) => {
@@ -31,7 +32,17 @@ export default function OfferRidePage() {
       if (v[0]) setVehicleId(v[0].id);
     });
     api<SavedPlace[]>("/api/places").then(setSaved).catch(() => {});
+    api<{ fuel_price_per_litre: number }>("/api/org")
+      .then((o) => setFuelPrice(Number(o.fuel_price_per_litre) || 100))
+      .catch(() => {});
   }, []);
+
+  // Fare optimizer: split the trip's estimated fuel cost across the seats.
+  const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+  const suggestedFare =
+    route && selectedVehicle
+      ? Math.max(1, Math.round((route.distanceKm / (selectedVehicle.mileage_kmpl || 15)) * fuelPrice / Math.max(1, seats)))
+      : null;
 
   async function preview(e: React.FormEvent) {
     e.preventDefault();
@@ -163,6 +174,14 @@ export default function OfferRidePage() {
               <div className="row"><span className="k">Departs</span><span>{new Date(departAt).toLocaleString()}</span></div>
               <div className="row"><span className="k">Seats</span><span>{seats}</span></div>
               <div className="row"><span className="k">Fare / seat</span><span className="fare">₹{fare}</span></div>
+              {suggestedFare != null && suggestedFare !== fare && (
+                <div className="row">
+                  <span className="k">💡 Fair fare estimate</span>
+                  <span className="chip suggest" onClick={() => setFare(suggestedFare)}>
+                    Apply ₹{suggestedFare}/seat
+                  </span>
+                </div>
+              )}
             </div>
             <div className="btn-row" style={{ marginTop: 16 }}>
               <button className="btn-success" onClick={publish} disabled={busy}>

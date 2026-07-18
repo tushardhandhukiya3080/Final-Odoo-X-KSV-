@@ -101,6 +101,22 @@ export default function TripClient({ id, currentUserId }: { id: string; currentU
     }
   }
 
+  function raiseSos() {
+    if (!confirm("Send an emergency SOS alert to everyone on this trip?")) return;
+    const send = (lat?: number, lng?: number) =>
+      api(`/api/rides/${id}/sos`, { method: "POST", body: { lat, lng } })
+        .then(() => alert("🆘 SOS sent — participants have been alerted."))
+        .catch((e) => setError((e as Error).message));
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (p) => send(p.coords.latitude, p.coords.longitude),
+        () => send(),
+      );
+    } else {
+      send();
+    }
+  }
+
   async function cancelBooking() {
     if (!d?.myBooking || !confirm("Cancel your booking?")) return;
     setBusy(true);
@@ -201,6 +217,9 @@ export default function TripClient({ id, currentUserId }: { id: string; currentU
         <div className="row-between">
           <strong>Actions</strong>
           <div className="btn-row">
+            {active && (
+              <button className="btn-danger sos-btn" onClick={raiseSos}>🆘 SOS</button>
+            )}
             {isDriver && ride.status === "published" && (
               <>
                 <button className="btn-success" onClick={() => setStatus("started")} disabled={busy}>🚦 Start trip</button>
