@@ -20,6 +20,7 @@
     "bcryptjs": "^2.4.3",
     "jose": "^5.9.6",
     "leaflet": "^1.9.4",
+    "lucide-react": "^1.25.0",
     "next": "^15.4.0",
     "pg": "^8.13.1",
     "pino": "^10.3.1",
@@ -39,7 +40,10 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.19",
     "prisma": "^6.19.3",
+    "tailwindcss": "^3.4.19",
     "typescript": "^5.7.3"
   }
 }
