@@ -1,0 +1,50 @@
+# Fresh Postgres + n8n on NON-default host ports so they don't collide
+# with your existing containers.
+#   Postgres -> localhost:5544   (container 5432)
+#   n8n      -> localhost:5688   (container 5678)
+# Container names are prefixed "starter_" to avoid name clashes too.
+
+services:
+  postgres:
+    # pgvector image = Postgres 16 + the vector extension (for semantic search).
+    image: pgvector/pgvector:pg16
+    container_name: starter_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppassword
+      POSTGRES_DB: appdb
+    ports:
+      - "5544:5432"
+    volumes:
+      - starter_pgdata:/var/lib/postgresql/data
+      # Init scripts run in filename order: auth tables first, then carpool schema.
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./db/carpool.sql:/docker-entrypoint-initdb.d/02-carpool.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: starter_n8n
+    restart: unless-stopped
+    ports:
+      - "5688:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_SECURE_COOKIE=false
+      - WEBHOOK_URL=http://localhost:5688/
+      - GENERIC_TIMEZONE=UTC
+      # Stable encryption key so saved credentials survive restarts. Change it.
+      - N8N_ENCRYPTION_KEY=change-me-32-char-key-0000000000
+    volumes:
+      - starter_n8ndata:/home/node/.n8n
+
+volumes:
+  starter_pgdata:
+  starter_n8ndata:

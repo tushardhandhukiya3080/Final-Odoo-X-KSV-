@@ -1,0 +1,11 @@
+import { pipeline } from "@huggingface/transformers";
+console.log("loading model (first run downloads ~90MB)...");
+const extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
+const a = await extractor("a cat sits on the mat", { pooling: "mean", normalize: true });
+const b = await extractor("a kitten rests on a rug", { pooling: "mean", normalize: true });
+const c = await extractor("quarterly financial report", { pooling: "mean", normalize: true });
+const va = Array.from(a.data), vb = Array.from(b.data), vc = Array.from(c.data);
+const dot = (x, y) => x.reduce((s, xi, i) => s + xi * y[i], 0);
+console.log("dims:", va.length);
+console.log("sim(cat, kitten)  =", dot(va, vb).toFixed(3), "(should be HIGH)");
+console.log("sim(cat, finance) =", dot(va, vc).toFixed(3), "(should be LOW)");

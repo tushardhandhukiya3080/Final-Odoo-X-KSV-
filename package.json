@@ -1,0 +1,43 @@
+{
+  "name": "rideshare-carpool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Carpooling Platform — Next.js, PostgreSQL, JWT auth, live tracking, Razorpay",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "up": "docker compose up -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "db:migrate": "node scripts/migrate.mjs",
+    "seed": "node scripts/seed.mjs",
+    "smoke": "node scripts/smoke-carpool.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc13",
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.9.6",
+    "leaflet": "^1.9.4",
+    "next": "^15.4.0",
+    "pg": "^8.13.1",
+    "pino": "^10.3.1",
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.8",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-leaflet": "^5.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.7.3"
+  }
+}
