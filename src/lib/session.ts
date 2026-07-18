@@ -24,7 +24,11 @@ function secret(): Uint8Array {
 }
 
 export async function createToken(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ ...payload })
+  // `kind` discriminates a real session from other tokens signed with the same
+  // JWT_SECRET (e.g. the Google onboarding "g_pending" token). Without it, a
+  // pending token could be replayed as a session cookie. verifyToken() rejects
+  // anything whose kind isn't "session".
+  return new SignJWT({ ...payload, kind: "session" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
@@ -34,7 +38,11 @@ export async function createToken(payload: SessionPayload): Promise<string> {
 export async function verifyToken(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secret());
-    if (typeof payload.userId !== "string" || typeof payload.email !== "string") {
+    if (
+      payload.kind !== "session" ||
+      typeof payload.userId !== "string" ||
+      typeof payload.email !== "string"
+    ) {
       return null;
     }
     return {

@@ -18,6 +18,17 @@ export const signupVerifySchema = signupSchema.extend({
   otp: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
 });
 
+// Google onboarding: after Google sign-in the user supplies a WhatsApp number
+// (and a company if they're new) — companyName is required conditionally in the
+// route, based on whether the pending identity already has an organization.
+export const onboardOtpSchema = z.object({
+  phone: z.string().trim().regex(/^\+?[\d\s-]{8,20}$/, "Enter a valid WhatsApp number"),
+  companyName: z.string().trim().min(1).max(120).optional(),
+});
+export const onboardCompleteSchema = onboardOtpSchema.extend({
+  otp: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),

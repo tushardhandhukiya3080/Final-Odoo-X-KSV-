@@ -18,6 +18,7 @@ const PRIMARY: NavItem[] = [
   { href: "/find", label: "Find a Ride", icon: "🔎" },
   { href: "/offer", label: "Offer a Ride", icon: "🚗" },
   { href: "/trips", label: "My Trips", icon: "🧭" },
+  { href: "/simulate", label: "Simulate", icon: "🎮" },
 ];
 const MANAGE: NavItem[] = [
   { href: "/vehicles", label: "Vehicles", icon: "🚙" },
