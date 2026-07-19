@@ -58,6 +58,12 @@ export const GET = route(async (_req, { user }) => {
       const last = r.last_lat != null && r.last_lng != null ? { lat: r.last_lat, lng: r.last_lng } : null;
       const arrived = isArrived({ mode: r.track_mode, progressIndex, waypointCount: waypoints.length, last, dest });
 
+      // Car position for the map: the real ping/reached-stop if we have it, else —
+      // while en route but not yet advanced — the current waypoint (origin at start).
+      const enRoute = r.status === "started" || r.status === "in_progress";
+      const cwp = waypoints[progressIndex];
+      const carPos = last ?? (enRoute ? { lat: cwp.lat, lng: cwp.lng } : null);
+
       // Where the ride is now: the last reached stop (manual) or the GPS ping.
       const currentLabel =
         r.track_mode === "gps"
@@ -71,6 +77,8 @@ export const GET = route(async (_req, { user }) => {
         id: r.id,
         originLabel: r.origin_label,
         destLabel: r.dest_label,
+        origin: { lat: r.origin_lat, lng: r.origin_lng },
+        dest: { lat: r.dest_lat, lng: r.dest_lng },
         stops: waypoints.map((w, i) => ({
           label: w.label,
           reached: i <= progressIndex,
@@ -87,7 +95,7 @@ export const GET = route(async (_req, { user }) => {
         trackMode: r.track_mode,
         progressIndex,
         currentLabel,
-        live: last,
+        live: carPos,
         driverName: r.driver_name,
         vehicle: `${r.vehicle_model} · ${r.registration_number}`,
       };

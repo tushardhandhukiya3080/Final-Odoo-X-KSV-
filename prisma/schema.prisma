@@ -104,6 +104,9 @@ model rides {
   last_lng        Float?
   last_ping_at    DateTime?     @db.Timestamptz(6)
   created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  stops           Json          @default("[]")
+  track_mode      String        @default("gps")
+  progress_index  Int           @default(0)
   bookings        bookings[]
   messages        messages[]
   users           users         @relation(fields: [driver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -161,6 +164,8 @@ model vehicles {
   mileage_kmpl        Decimal  @default(15) @db.Decimal(6, 2)
   is_active           Boolean  @default(true)
   created_at          DateTime @default(now()) @db.Timestamptz(6)
+  vehicle_type        String   @default("car")
+  plate_verified      Boolean  @default(false)
   rides               rides[]
   users               users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 

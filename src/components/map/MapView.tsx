@@ -59,6 +59,7 @@ export default function MapView({
   points = [],
   route,
   live,
+  height,
   tall = false,
 }: MapViewProps) {
   const routeLatLng: [number, number][] = route?.map(([lng, lat]) => [lat, lng]) ?? [];
@@ -70,7 +71,7 @@ export default function MapView({
   const center: [number, number] = allPos[0] ?? [20.5937, 78.9629]; // India fallback
 
   return (
-    <div className={`map ${tall ? "tall" : ""}`}>
+    <div className={`map ${tall ? "tall" : ""}`} style={height ? { height } : undefined}>
       <MapContainer center={center} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
         <TileLayer
           attribution='&copy; OpenStreetMap'

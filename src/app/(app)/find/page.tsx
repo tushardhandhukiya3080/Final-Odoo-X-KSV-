@@ -38,6 +38,10 @@ interface Avail {
   id: string;
   originLabel: string;
   destLabel: string;
+  origin: { lat: number; lng: number };
+  dest: { lat: number; lng: number };
+  route: [number, number][];
+  live: { lat: number; lng: number } | null;
   stops: AvailStop[];
   distanceKm: number;
   departAt: string;
@@ -201,6 +205,19 @@ export default function FindRidePage() {
                     </span>
                     <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{new Date(a.departAt).toLocaleString()}</span>
                     <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /><b className="text-slate-700">{a.seatsAvailable}</b> free</span>
+                  </div>
+
+                  {/* mini map — route + current position (reached sub-stop / GPS) */}
+                  <div className="mt-3">
+                    <DynamicMap
+                      height={170}
+                      points={[
+                        { lat: a.origin.lat, lng: a.origin.lng, kind: "origin" },
+                        { lat: a.dest.lat, lng: a.dest.lng, kind: "dest" },
+                      ]}
+                      route={a.route}
+                      live={a.live}
+                    />
                   </div>
 
                   <div className="mt-4 flex items-center justify-between gap-3">

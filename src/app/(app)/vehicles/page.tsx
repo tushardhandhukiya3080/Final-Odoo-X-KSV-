@@ -78,8 +78,15 @@ export default function VehiclesPage() {
     setScan("scanning");
     setError(null);
     try {
-      const Tesseract = (await import("tesseract.js")).default;
-      const { data } = await Tesseract.recognize(file, "eng");
+      // Restrict OCR to plate characters + sparse-text mode → far fewer misreads.
+      const { createWorker, PSM } = await import("tesseract.js");
+      const worker = await createWorker("eng");
+      await worker.setParameters({
+        tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+        tessedit_pageseg_mode: PSM.SPARSE_TEXT,
+      });
+      const { data } = await worker.recognize(file);
+      await worker.terminate();
       const plate = extractPlate(data.text);
       if (plate) {
         setReg(plate);

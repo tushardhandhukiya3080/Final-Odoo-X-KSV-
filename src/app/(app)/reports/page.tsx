@@ -118,26 +118,52 @@ export default async function ReportsPage() {
         </div>
       </Section>
 
-      <Section label="Monthly Distance">
-        <div className="bento">
-          {totalDistance === 0 ? (
-            <p className="text-sm font-semibold text-slate-400">Complete a few trips to see trends.</p>
-          ) : (
-            <div className="flex items-end gap-4" style={{ height: 180 }}>
-              {monthly.map((m) => (
-                <div key={m.label} className="flex-1 text-center">
-                  <div className="flex items-end justify-center" style={{ height: 140 }}>
-                    <div
-                      title={`${m.distance.toFixed(1)} km`}
-                      className="w-8 rounded-t-lg bg-gradient-to-t from-[#5aadee] to-[#a6d6fb] shadow-btn ring-1 ring-black/10"
-                      style={{ height: `${(m.distance / maxMonthly) * 100}%`, minHeight: m.distance > 0 ? 4 : 0 }}
-                    />
+      <Section label="Analytics">
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+          {/* Monthly distance bar chart */}
+          <div className="bento">
+            <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wide text-slate-400">Monthly distance (km)</div>
+            {totalDistance === 0 ? (
+              <p className="text-sm font-semibold text-slate-400">Complete a few trips to see trends.</p>
+            ) : (
+              <div className="flex items-end gap-4" style={{ height: 180 }}>
+                {monthly.map((m) => (
+                  <div key={m.label} className="flex-1 text-center">
+                    <div className="flex items-end justify-center" style={{ height: 140 }}>
+                      <div
+                        title={`${m.distance.toFixed(1)} km`}
+                        className="w-8 rounded-t-lg bg-gradient-to-t from-[#5aadee] to-[#a6d6fb] shadow-btn ring-1 ring-black/10"
+                        style={{ height: `${(m.distance / maxMonthly) * 100}%`, minHeight: m.distance > 0 ? 4 : 0 }}
+                      />
+                    </div>
+                    <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">{m.label}</div>
                   </div>
-                  <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">{m.label}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Driver vs passenger donut */}
+          <div className="bento">
+            <div className="mb-3 text-[11px] font-extrabold uppercase tracking-wide text-slate-400">Trips: driver vs passenger</div>
+            {rides.length + passengerTrips === 0 ? (
+              <p className="text-sm font-semibold text-slate-400">No completed trips yet.</p>
+            ) : (
+              <div className="flex flex-wrap items-center gap-6">
+                <Donut
+                  total={rides.length + passengerTrips}
+                  segments={[
+                    { value: rides.length, color: "#3b82f6" },
+                    { value: passengerTrips, color: "#0d9488" },
+                  ]}
+                />
+                <div className="space-y-2.5">
+                  <LegendRow color="#3b82f6" label="As driver" value={rides.length} />
+                  <LegendRow color="#0d9488" label="As passenger" value={passengerTrips} />
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </Section>
 
@@ -210,6 +236,44 @@ function GreenStat({ icon, label, value }: { icon: React.ReactNode; label: strin
     <div className="rounded-xl bg-white/95 p-3 text-slate-900 ring-1 ring-black/10">
       <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{icon}{label}</div>
       <div className="mt-1 font-display text-2xl font-bold">{value}</div>
+    </div>
+  );
+}
+
+// SVG donut — each segment is a dashed arc, offset by the ones before it.
+function Donut({ segments, total, size = 150, stroke = 26 }: {
+  segments: { value: number; color: string }[]; total: number; size?: number; stroke?: number;
+}) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const denom = total || 1;
+  let offset = 0;
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="shrink-0">
+      <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e7eb" strokeWidth={stroke} />
+        {segments.map((s, i) => {
+          const len = (s.value / denom) * c;
+          const arc = (
+            <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color}
+              strokeWidth={stroke} strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} />
+          );
+          offset += len;
+          return arc;
+        })}
+      </g>
+      <text x="50%" y="47%" textAnchor="middle" fontSize="28" fontWeight="700" fill="#0f172a" fontFamily="var(--font-display)">{total}</text>
+      <text x="50%" y="62%" textAnchor="middle" fontSize="10" fontWeight="700" fill="#94a3b8" letterSpacing="0.12em">TRIPS</text>
+    </svg>
+  );
+}
+
+function LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="h-3 w-3 rounded-full" style={{ background: color }} />
+      <span className="font-semibold text-slate-500">{label}</span>
+      <span className="ml-auto font-display font-bold text-slate-900">{value}</span>
     </div>
   );
 }
