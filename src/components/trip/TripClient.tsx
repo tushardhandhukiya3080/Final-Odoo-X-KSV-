@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import { useAppEvents } from "@/components/EventsProvider";
 import DynamicMap from "@/components/map/DynamicMap";
@@ -25,6 +26,7 @@ export default function TripClient({
   currentUserId: string;
   trackMode?: "manual" | "gps";
 }) {
+  const router = useRouter();
   const [d, setD] = useState<TripDetail | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [live, setLive] = useState<{ lat: number; lng: number } | null>(null);
@@ -115,6 +117,7 @@ export default function TripClient({
     try {
       await api(`/api/rides/${id}/status`, { method: "POST", body: { status } });
       await reload();
+      router.refresh(); // re-sync the server-rendered "Reached next stop" control
     } catch (e) {
       setError((e as Error).message);
     } finally {
